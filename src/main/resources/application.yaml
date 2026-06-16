@@ -16,6 +16,12 @@ spring:
     virtual:
       enabled: true
 
+app:
+  jwt:
+    # Override JWT_SECRET in production with a strong random base64-encoded key
+    secret: ${JWT_SECRET:SBaL2tluRm6kW29kzJ+RboD4PFZr9pRWI+tLg1SvqGM=}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
 management:
   endpoints:
     web:

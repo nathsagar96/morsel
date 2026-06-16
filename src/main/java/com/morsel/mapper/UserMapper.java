@@ -1,0 +1,24 @@
+package com.morsel.mapper;
+
+import com.morsel.dto.request.SignUpRequest;
+import com.morsel.dto.response.AuthResponse;
+import com.morsel.model.Role;
+import com.morsel.model.User;
+import org.springframework.stereotype.Component;
+
+@Component
+public class UserMapper {
+
+    public User toEntity(SignUpRequest request, String encodedPassword, Role role) {
+        return User.builder()
+                .username(request.username())
+                .email(request.email())
+                .password(encodedPassword)
+                .role(role)
+                .build();
+    }
+
+    public AuthResponse toAuthResponse(User user, String token) {
+        return AuthResponse.of(token, user.getId(), user.getUsername(), user.getEmail());
+    }
+}
