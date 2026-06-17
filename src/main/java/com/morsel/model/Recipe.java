@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -64,6 +65,7 @@ public class Recipe {
             name = "recipe_ingredients",
             joinColumns = @JoinColumn(name = "recipe_id"),
             inverseJoinColumns = @JoinColumn(name = "ingredient_id"))
+    @BatchSize(size = 16)
     @Builder.Default
     private List<Ingredient> ingredients = new ArrayList<>();
 }

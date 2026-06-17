@@ -17,6 +17,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = "recipes")
     Optional<User> findWithRecipesByUsername(String username);
 
-    @EntityGraph(attributePaths = {"favorites", "favorites.author", "favorites.ingredients"})
+    @EntityGraph(attributePaths = {"favorites", "favorites.author"})
     Optional<User> findWithFavoritesById(Long id);
 }

@@ -3,8 +3,10 @@ package com.morsel.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.morsel.TestcontainersConfiguration;
+import com.morsel.model.Recipe;
 import com.morsel.model.Role;
 import com.morsel.model.User;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +24,9 @@ class UserRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RecipeRepository recipeRepository;
 
     @BeforeEach
     void setUp() {
@@ -92,5 +97,66 @@ class UserRepositoryTest {
     @DisplayName("checks email existence returns false when not exists")
     void existsByEmail_whenNotExists_returnsFalse() {
         assertThat(userRepository.existsByEmail("unknown@example.com")).isFalse();
+    }
+
+    @Test
+    @DisplayName("finds user with recipes eagerly by username")
+    void findWithRecipesByUsername_whenExists_returnsUserWithRecipes() {
+        User chef = User.builder()
+                .username("chef")
+                .email("chef@example.com")
+                .password("encoded")
+                .role(Role.USER)
+                .build();
+        Recipe chefSpecial = Recipe.builder()
+                .title("Chef Special")
+                .instructions("Cook")
+                .author(chef)
+                .build();
+        chef.setRecipes(List.of(chefSpecial));
+        userRepository.save(chef);
+
+        Optional<User> result = userRepository.findWithRecipesByUsername("chef");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getRecipes()).hasSize(1);
+        assertThat(result.get().getRecipes().get(0).getTitle()).isEqualTo("Chef Special");
+    }
+
+    @Test
+    @DisplayName("returns empty when username not found")
+    void findWithRecipesByUsername_whenNotExists_returnsEmpty() {
+        assertThat(userRepository.findWithRecipesByUsername("nonexistent")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("finds user with favorites eagerly by id")
+    void findWithFavoritesById_whenExists_returnsUserWithFavorites() {
+        User chef = userRepository.save(User.builder()
+                .username("chef")
+                .email("chef@example.com")
+                .password("encoded")
+                .role(Role.USER)
+                .build());
+        Recipe recipe = recipeRepository.save(Recipe.builder()
+                .title("Favorite Dish")
+                .instructions("Cook")
+                .author(chef)
+                .build());
+
+        chef.getFavorites().add(recipe);
+        userRepository.save(chef);
+
+        Optional<User> result = userRepository.findWithFavoritesById(chef.getId());
+
+        assertThat(result).isPresent();
+        assertThat(result.get().getFavorites()).hasSize(1);
+        assertThat(result.get().getFavorites().get(0).getTitle()).isEqualTo("Favorite Dish");
+    }
+
+    @Test
+    @DisplayName("returns empty when id not found")
+    void findWithFavoritesById_whenNotExists_returnsEmpty() {
+        assertThat(userRepository.findWithFavoritesById(999L)).isEmpty();
     }
 }
