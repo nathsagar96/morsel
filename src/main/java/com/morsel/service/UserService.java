@@ -3,7 +3,9 @@ package com.morsel.service;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
+import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.DuplicateResourceException;
+import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
 import com.morsel.model.User;
@@ -65,5 +67,15 @@ public class UserService {
         String token = jwtTokenProvider.generateToken(user.getId());
         log.info("User signed in: {}", user.getUsername());
         return userMapper.toAuthResponse(user, token);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getProfile(String username) {
+        User user = userRepository.findWithRecipesByUsername(username).orElseThrow(() -> {
+            log.warn("User profile not found: {}", username);
+            return new ResourceNotFoundException("User not found: " + username);
+        });
+        log.debug("Profile fetched for user: {}", username);
+        return userMapper.toProfileResponse(user);
     }
 }

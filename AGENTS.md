@@ -41,12 +41,13 @@ com.morsel
 ├── model/                           # User, Recipe, Ingredient, Comment, Rating + Role enum
 ├── repository/                      # JpaRepository interfaces
 ├── security/                        # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal (record implements UserDetails)
-├── service/                         # UserService, CustomUserDetailsService, RecipeService, CommentService, RatingService
+├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController, UserController, FavoriteController
+├── service/                         # UserService, CustomUserDetailsService, RecipeService, CommentService, RatingService, FavoriteService
 ├── specification/                   # RecipeSpecification (JPA Criteria API static factories)
 └── storage/                         # FileStorageService (interface), LocalFileStorageService
 ```
 
-**API endpoints** (12 total):
+**API endpoints** (16 total):
 
 | Action                   | Path                                       | Auth          | Query params                               |
 |--------------------------|--------------------------------------------|---------------|--------------------------------------------|
@@ -62,6 +63,10 @@ com.morsel
 | List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | authenticated | —                                          |
 | Add/update rating        | `POST /api/v1/recipes/{recipeId}/ratings`  | authenticated | —                                          |
 | Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     | —                                          |
+| Add favorite             | `POST /api/v1/recipes/{id}/favorite`       | authenticated | —                                          |
+| Remove favorite          | `DELETE /api/v1/recipes/{id}/favorite`     | authenticated | —                                          |
+| Get my favorites         | `GET /api/v1/users/me/favorites`           | authenticated | —                                          |
+| Get user profile         | `GET /api/v1/users/{username}`             | authenticated | —                                          |
 
 **Entity model**:
 
@@ -69,6 +74,7 @@ com.morsel
   ratings)
 - `Recipe` also cascades to comments/ratings (dual ownership)
 - `Recipe` ↔ `Ingredient` is a bidirectional `@ManyToMany` via `recipe_ingredients` join table
+- `User` ↔ `Recipe` is a unidirectional `@ManyToMany` via `user_favorite_recipes` join table (`user.favorites`)
 - All `@ManyToOne` are `FetchType.LAZY`; OSIV is disabled (`open-in-view=false`)
 - Lazy collections require `@Transactional` or `@EntityGraph` to avoid `LazyInitializationException`
 - `RecipeRepository` extends `JpaSpecificationExecutor<Recipe>` with `@EntityGraph` on its `findAll` overrides

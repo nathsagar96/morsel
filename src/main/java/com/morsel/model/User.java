@@ -41,4 +41,12 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Rating> ratings = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "user_favorite_recipes",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "recipe_id"))
+    @Builder.Default
+    private List<Recipe> favorites = new ArrayList<>();
 }

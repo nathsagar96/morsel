@@ -2,6 +2,7 @@ package com.morsel.mapper;
 
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
+import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.model.Role;
 import com.morsel.model.User;
 import org.springframework.stereotype.Component;
@@ -20,5 +21,9 @@ public class UserMapper {
 
     public AuthResponse toAuthResponse(User user, String token) {
         return AuthResponse.of(token, user.getId(), user.getUsername(), user.getEmail());
+    }
+
+    public UserProfileResponse toProfileResponse(User user) {
+        return UserProfileResponse.of(user);
     }
 }

@@ -1,0 +1,37 @@
+package com.morsel.controller;
+
+import com.morsel.dto.response.RecipeResponse;
+import com.morsel.dto.response.UserProfileResponse;
+import com.morsel.security.UserPrincipal;
+import com.morsel.service.FavoriteService;
+import com.morsel.service.UserService;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
+@Slf4j
+public class UserController {
+
+    private final UserService userService;
+    private final FavoriteService favoriteService;
+
+    @GetMapping("/{username}")
+    public UserProfileResponse getProfile(@PathVariable String username) {
+        log.debug("Profile request for user: {}", username);
+        return userService.getProfile(username);
+    }
+
+    @GetMapping("/me/favorites")
+    public List<RecipeResponse> getMyFavorites(@AuthenticationPrincipal UserPrincipal principal) {
+        log.debug("Favorites request by user: {}", principal.user().getId());
+        return favoriteService.getFavorites(principal.user());
+    }
+}
