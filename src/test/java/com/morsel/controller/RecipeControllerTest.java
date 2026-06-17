@@ -6,6 +6,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,7 +35,9 @@ import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoCon
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -232,5 +235,38 @@ class RecipeControllerTest {
                 .delete(eq(999L), any(User.class));
 
         mockMvc.perform(delete("/api/v1/recipes/999")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/recipes/{id}/image returns 200 for owner with valid file")
+    void uploadImage_byOwner_returns200() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "image-content".getBytes());
+        when(recipeService.uploadImage(eq(100L), any(), any(User.class))).thenReturn(recipeResponse);
+
+        mockMvc.perform(multipart(HttpMethod.POST, "/api/v1/recipes/100/image").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(100));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/recipes/{id}/image returns 403 when non-owner uploads")
+    void uploadImage_byNonOwner_returns403() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "image-content".getBytes());
+        when(recipeService.uploadImage(eq(100L), any(), any(User.class)))
+                .thenThrow(new ForbiddenException("You do not own this recipe"));
+
+        mockMvc.perform(multipart(HttpMethod.POST, "/api/v1/recipes/100/image").file(file))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/recipes/{id}/image returns 404 when recipe not found")
+    void uploadImage_withNonExistentId_returns404() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "image-content".getBytes());
+        when(recipeService.uploadImage(eq(999L), any(), any(User.class)))
+                .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
+
+        mockMvc.perform(multipart(HttpMethod.POST, "/api/v1/recipes/999/image").file(file))
+                .andExpect(status().isNotFound());
     }
 }

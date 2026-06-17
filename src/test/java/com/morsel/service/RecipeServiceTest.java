@@ -19,6 +19,7 @@ import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.IngredientRepository;
 import com.morsel.repository.RecipeRepository;
+import com.morsel.storage.FileStorageService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("RecipeService")
@@ -44,6 +46,9 @@ class RecipeServiceTest {
 
     @Mock
     private RecipeMapper recipeMapper;
+
+    @Mock
+    private FileStorageService fileStorageService;
 
     @InjectMocks
     private RecipeService recipeService;
@@ -224,5 +229,48 @@ class RecipeServiceTest {
         assertThatThrownBy(() -> recipeService.delete(999L, admin))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("uploads image and sets imageUrl on recipe")
+    void uploadImage_byOwner_setsImageUrl() {
+        MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+        String expectedUrl = "/api/v1/images/uuid.jpg";
+        RecipeResponse expectedResponse = new RecipeResponse(
+                100L, "Original Title", "Original desc", "Steps", expectedUrl, 1L, "author", List.of(10L), null, null);
+        when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
+        when(fileStorageService.store(file)).thenReturn(expectedUrl);
+        when(recipeMapper.toResponse(recipe)).thenReturn(expectedResponse);
+
+        RecipeResponse response = recipeService.uploadImage(100L, file, author);
+
+        assertThat(response.imageUrl()).isEqualTo(expectedUrl);
+        verify(fileStorageService).store(file);
+    }
+
+    @Test
+    @DisplayName("throws ForbiddenException when non-owner uploads image")
+    void uploadImage_byNonOwner_throwsForbidden() {
+        MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+        when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
+
+        assertThatThrownBy(() -> recipeService.uploadImage(100L, file, otherUser))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("do not own");
+
+        verify(fileStorageService, never()).store(any());
+    }
+
+    @Test
+    @DisplayName("throws ResourceNotFoundException when uploading image for non-existent recipe")
+    void uploadImage_withNonExistentId_throwsNotFound() {
+        MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
+        when(recipeRepository.findWithDetailsById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> recipeService.uploadImage(999L, file, author))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("999");
+
+        verify(fileStorageService, never()).store(any());
     }
 }

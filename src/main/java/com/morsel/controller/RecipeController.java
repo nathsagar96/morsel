@@ -21,8 +21,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/recipes")
@@ -60,6 +62,18 @@ public class RecipeController {
             @AuthenticationPrincipal UserPrincipal principal) {
         log.debug("Update recipe id={} by user: {}", id, principal.user().getId());
         return recipeService.update(id, request, principal.user());
+    }
+
+    @PostMapping("/{id}/image")
+    public RecipeResponse uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        log.debug(
+                "Upload image for recipe id={} by user: {}",
+                id,
+                principal.user().getId());
+        return recipeService.uploadImage(id, file, principal.user());
     }
 
     @DeleteMapping("/{id}")

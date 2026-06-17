@@ -12,6 +12,7 @@ import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.IngredientRepository;
 import com.morsel.repository.RecipeRepository;
+import com.morsel.storage.FileStorageService;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
     private final RecipeMapper recipeMapper;
+    private final FileStorageService fileStorageService;
 
     @Transactional
     public RecipeResponse create(CreateRecipeRequest request, User author) {
@@ -68,6 +71,16 @@ public class RecipeService {
         }
         recipeRepository.delete(recipe);
         log.info("Recipe deleted: id={} by admin={}", id, currentUser.getUsername());
+    }
+
+    @Transactional
+    public RecipeResponse uploadImage(Long id, MultipartFile file, User currentUser) {
+        Recipe recipe = findRecipeOrThrow(id);
+        checkOwnership(recipe, currentUser);
+        String imageUrl = fileStorageService.store(file);
+        recipe.setImageUrl(imageUrl);
+        log.info("Image uploaded for recipe id={}, url={}", id, imageUrl);
+        return recipeMapper.toResponse(recipe);
     }
 
     private Recipe findRecipeOrThrow(Long id) {

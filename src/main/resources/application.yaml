@@ -12,6 +12,10 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
   threads:
     virtual:
       enabled: true
@@ -21,6 +25,8 @@ app:
     # Override JWT_SECRET in production with a strong random base64-encoded key
     secret: ${JWT_SECRET:SBaL2tluRm6kW29kzJ+RboD4PFZr9pRWI+tLg1SvqGM=}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  storage:
+    upload-dir: ${APP_UPLOAD_DIR:uploads}
 
 management:
   endpoints:
