@@ -33,31 +33,34 @@ Single-module Maven project under `com.morsel`:
 com.morsel
 ├── Application.java                 # @SpringBootApplication + @ConfigurationPropertiesScan
 ├── config/                          # SecurityConfig, JpaConfig, JwtProperties, StorageProperties (records)
-├── controller/                      # AuthController, RecipeController, ImageController
-├── dto/request/                     # SignUpRequest, LoginRequest, CreateRecipeRequest, UpdateRecipeRequest (records)
-├── dto/response/                    # AuthResponse, RecipeResponse (records with static of() factory)
+├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController
+├── dto/request/                     # SignUpRequest, LoginRequest, CreateRecipeRequest, UpdateRecipeRequest, CommentRequest, RatingRequest (records)
+├── dto/response/                    # AuthResponse, RecipeResponse, CommentResponse, RatingResponse (records with static of() factory)
 ├── exception/                       # sealed: ApplicationException ← DuplicateResourceException, ForbiddenException, InvalidFileException, ResourceNotFoundException
-├── mapper/                          # UserMapper, RecipeMapper (@Component)
+├── mapper/                          # UserMapper, RecipeMapper, CommentMapper, RatingMapper (@Component)
 ├── model/                           # User, Recipe, Ingredient, Comment, Rating + Role enum
 ├── repository/                      # JpaRepository interfaces
 ├── security/                        # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal (record implements UserDetails)
-├── service/                         # UserService, CustomUserDetailsService, RecipeService
+├── service/                         # UserService, CustomUserDetailsService, RecipeService, CommentService, RatingService
 └── storage/                         # FileStorageService (interface), LocalFileStorageService
 ```
 
-**API endpoints** (9 total):
+**API endpoints** (12 total):
 
-| Action                   | Path                              | Auth          |
-|--------------------------|-----------------------------------|---------------|
-| Sign up                  | `POST /api/v1/auth/signup`        | permitAll     |
-| Sign in                  | `POST /api/v1/auth/signin`        | permitAll     |
-| Create recipe            | `POST /api/v1/recipes`            | authenticated |
-| List recipes (paginated) | `GET /api/v1/recipes`             | authenticated |
-| Get recipe by id         | `GET /api/v1/recipes/{id}`        | authenticated |
-| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`        | owner check   |
-| Upload recipe image      | `POST /api/v1/recipes/{id}/image` | owner check   |
-| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`     | admin only    |
-| Serve stored image       | `GET /api/v1/images/{filename}`   | permitAll     |
+| Action                   | Path                                       | Auth          |
+|--------------------------|--------------------------------------------|---------------|
+| Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     |
+| Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     |
+| Create recipe            | `POST /api/v1/recipes`                     | authenticated |
+| List recipes (paginated) | `GET /api/v1/recipes`                      | authenticated |
+| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | authenticated |
+| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   |
+| Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   |
+| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    |
+| Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated |
+| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | authenticated |
+| Add/update rating        | `POST /api/v1/recipes/{recipeId}/ratings`  | authenticated |
+| Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     |
 
 **Entity model**:
 
@@ -79,7 +82,7 @@ com.morsel
 - **ProblemDetail** (RFC 7807) for error responses (`spring.mvc.problemdetails.enabled=true`)
 - Package names are singular (`model`, `repository`, `service`)
 - Test method names: `snake_case` with `@DisplayName` on class and each method
-- **Separate DTOs for create vs update** — never reuse a single request type for both
+- **Separate DTOs for creation vs update** — never reuse a single request type for both
 
 ## Security / JWT
 
@@ -94,27 +97,27 @@ com.morsel
 
 - Interface `FileStorageService` with `store(MultipartFile)` and `load(String filename)` methods
 - `LocalFileStorageService` saves to configurable directory (`app.storage.upload-dir`, default `uploads/`)
-- Allowed extensions: jpg, jpeg, png, gif, webp, svg (validated server-side)
+- Allowed extensions: jpg, jpeg, png, GIF, webp, svg (validated server-side)
 - Filenames are UUIDs with original extension; returned URL path is `/api/v1/images/{uuid}.{ext}`
 - Image serving (`GET /api/v1/images/{filename}`) is public (permitAll)
 - Multipart limits: 5MB per file, 10MB per request (`spring.servlet.multipart`)
 
-## Tests (90 total)
+## Tests (106 total)
 
 Four styles, all under `src/test/java/com/morsel/`:
 
-| Style                                 | Used for                                                                         | Key setup                                                                                                                                                                   |
-|---------------------------------------|----------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Plain JUnit 5                         | GlobalExceptionHandler, JwtTokenProvider, UserPrincipal, LocalFileStorageService | —                                                                                                                                                                           |
-| `@ExtendWith(MockitoExtension.class)` | UserService, RecipeService, CustomUserDetailsService                             | `@Mock`, `@InjectMocks`                                                                                                                                                     |
-| `@DataJpaTest` + Testcontainers       | UserRepository                                                                   | `@AutoConfigureTestDatabase(replace = NONE)`, `@Import(TestcontainersConfiguration.class)`                                                                                  |
-| `@WebMvcTest` + Testcontainers        | AuthController, RecipeController, ImageController                                | `excludeAutoConfiguration = {SecurityAutoConfiguration, UserDetailsServiceAutoConfiguration}`, `addFilters = false` + manual `SecurityContextHolder` setup in `@BeforeEach` |
+| Style                                 | Used for                                                                               | Key setup                                                                                                                                                                   |
+|---------------------------------------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Plain JUnit 5                         | GlobalExceptionHandler, JwtTokenProvider, UserPrincipal, LocalFileStorageService       | —                                                                                                                                                                           |
+| `@ExtendWith(MockitoExtension.class)` | UserService, RecipeService, CustomUserDetailsService, CommentService, RatingService    | `@Mock`, `@InjectMocks`                                                                                                                                                     |
+| `@DataJpaTest` + Testcontainers       | UserRepository                                                                         | `@AutoConfigureTestDatabase(replace = NONE)`, `@Import(TestcontainersConfiguration.class)`                                                                                  |
+| `@WebMvcTest` + Testcontainers        | AuthController, RecipeController, ImageController, CommentController, RatingController | `excludeAutoConfiguration = {SecurityAutoConfiguration, UserDetailsServiceAutoConfiguration}`, `addFilters = false` + manual `SecurityContextHolder` setup in `@BeforeEach` |
 
 - **WebMvcTest auth setup**: Inject a `UsernamePasswordAuthenticationToken` with a `UserPrincipal` into
   `SecurityContextHolder` before each test; clear in `@AfterEach`
 - **TestcontainersConfiguration** (`@TestConfiguration`, `@ServiceConnection`) provides the PostgreSQL container — no H2
   allowed
-- `Application.java` doubles as the test main class (`spring-boot-testcontainers`)
+- Testcontainers auto-detects `Application.java` as the `@SpringBootApplication` from the classpath
 
 ## Operational
 
@@ -129,3 +132,6 @@ Four styles, all under `src/test/java/com/morsel/`:
   disabled)
 - **Ingredient lookup** validates all requested IDs exist — throws `ResourceNotFoundException` listing missing IDs
 - **Update does not call `save()`** — entity is managed inside `@Transactional`, dirty flushing happens at commit
+- **Rating upsert** uses native PostgreSQL `INSERT ... ON CONFLICT DO UPDATE` for atomic one-rating-per-user — no
+  find-then-create race
+- **Rating aggregates** use `AVG(score)` / `COUNT(*)` queries rather than loading all entities in memory

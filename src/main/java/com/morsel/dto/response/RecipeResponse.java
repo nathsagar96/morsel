@@ -13,6 +13,8 @@ public record RecipeResponse(
         Long authorId,
         String authorUsername,
         List<Long> ingredientIds,
+        Double averageRating,
+        Integer ratingCount,
         Instant createdAt,
         Instant updatedAt) {
 
@@ -26,6 +28,8 @@ public record RecipeResponse(
                 recipe.getAuthor().getId(),
                 recipe.getAuthor().getUsername(),
                 recipe.getIngredients().stream().map(i -> i.getId()).toList(),
+                recipe.getAverageRating(),
+                recipe.getRatingCount(),
                 recipe.getCreatedAt(),
                 recipe.getUpdatedAt());
     }

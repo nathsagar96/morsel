@@ -1,0 +1,52 @@
+package com.morsel.service;
+
+import com.morsel.dto.request.CommentRequest;
+import com.morsel.dto.response.CommentResponse;
+import com.morsel.exception.ResourceNotFoundException;
+import com.morsel.mapper.CommentMapper;
+import com.morsel.model.Comment;
+import com.morsel.model.Recipe;
+import com.morsel.model.User;
+import com.morsel.repository.CommentRepository;
+import com.morsel.repository.RecipeRepository;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class CommentService {
+
+    private final CommentRepository commentRepository;
+    private final RecipeRepository recipeRepository;
+    private final CommentMapper commentMapper;
+
+    @Transactional
+    public CommentResponse addComment(Long recipeId, CommentRequest request, User user) {
+        Recipe recipe = findRecipeOrThrow(recipeId);
+        Comment comment = commentMapper.toEntity(request, recipe, user);
+        comment = commentRepository.save(comment);
+        log.info("Comment added: id={}, recipeId={}, userId={}", comment.getId(), recipeId, user.getId());
+        return commentMapper.toResponse(comment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getComments(Long recipeId) {
+        if (!recipeRepository.existsById(recipeId)) {
+            throw new ResourceNotFoundException("Recipe not found with id: " + recipeId);
+        }
+        return commentRepository.findByRecipeIdOrderByCreatedAtDesc(recipeId).stream()
+                .map(commentMapper::toResponse)
+                .toList();
+    }
+
+    private Recipe findRecipeOrThrow(Long id) {
+        return recipeRepository.findById(id).orElseThrow(() -> {
+            log.warn("Recipe not found: id={}", id);
+            return new ResourceNotFoundException("Recipe not found with id: " + id);
+        });
+    }
+}

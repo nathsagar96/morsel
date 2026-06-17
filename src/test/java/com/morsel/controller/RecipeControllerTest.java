@@ -70,7 +70,7 @@ class RecipeControllerTest {
     private final UserPrincipal adminPrincipal = new UserPrincipal(admin);
     private final Instant now = Instant.now();
     private final RecipeResponse recipeResponse =
-            new RecipeResponse(100L, "Title", "Desc", "Steps", null, 1L, "author", List.of(10L), now, now);
+            new RecipeResponse(100L, "Title", "Desc", "Steps", null, 1L, "author", List.of(10L), 0.0, 0, now, now);
 
     @BeforeEach
     void setUpAuth() {

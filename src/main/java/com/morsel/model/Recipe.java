@@ -31,6 +31,14 @@ public class Recipe {
 
     private String imageUrl;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Double averageRating = 0.0;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer ratingCount = 0;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private Instant createdAt;

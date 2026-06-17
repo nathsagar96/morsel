@@ -237,7 +237,18 @@ class RecipeServiceTest {
         MultipartFile file = org.mockito.Mockito.mock(MultipartFile.class);
         String expectedUrl = "/api/v1/images/uuid.jpg";
         RecipeResponse expectedResponse = new RecipeResponse(
-                100L, "Original Title", "Original desc", "Steps", expectedUrl, 1L, "author", List.of(10L), null, null);
+                100L,
+                "Original Title",
+                "Original desc",
+                "Steps",
+                expectedUrl,
+                1L,
+                "author",
+                List.of(10L),
+                0.0,
+                0,
+                null,
+                null);
         when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
         when(fileStorageService.store(file)).thenReturn(expectedUrl);
         when(recipeMapper.toResponse(recipe)).thenReturn(expectedResponse);
