@@ -9,9 +9,10 @@ import com.morsel.model.Recipe;
 import com.morsel.model.User;
 import com.morsel.repository.CommentRepository;
 import com.morsel.repository.RecipeRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,13 +35,13 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(Long recipeId) {
+    public Page<CommentResponse> getComments(Long recipeId, Pageable pageable) {
         if (!recipeRepository.existsById(recipeId)) {
             throw new ResourceNotFoundException("Recipe not found with id: " + recipeId);
         }
-        return commentRepository.findByRecipeIdOrderByCreatedAtDesc(recipeId).stream()
-                .map(commentMapper::toResponse)
-                .toList();
+        return commentRepository
+                .findByRecipeIdOrderByCreatedAtDesc(recipeId, pageable)
+                .map(commentMapper::toResponse);
     }
 
     private Recipe findRecipeOrThrow(Long id) {

@@ -54,13 +54,13 @@ com.morsel
 | Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     | —                                          |
 | Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     | —                                          |
 | Create recipe            | `POST /api/v1/recipes`                     | authenticated | —                                          |
-| List recipes (paginated) | `GET /api/v1/recipes`                      | authenticated | `keyword`, `ingredients` (comma-separated) |
-| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | authenticated | —                                          |
+| List recipes (paginated) | `GET /api/v1/recipes`                      | permitAll     | `keyword`, `ingredients` (comma-separated) |
+| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | permitAll     | —                                          |
 | Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   | —                                          |
 | Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   | —                                          |
 | Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    | —                                          |
 | Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated | —                                          |
-| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | authenticated | —                                          |
+| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | permitAll     | —                                          |
 | Add/update rating        | `POST /api/v1/recipes/{recipeId}/ratings`  | authenticated | —                                          |
 | Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     | —                                          |
 | Add favorite             | `POST /api/v1/recipes/{id}/favorite`       | authenticated | —                                          |

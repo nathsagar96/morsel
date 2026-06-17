@@ -25,6 +25,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CommentService")
@@ -88,23 +91,26 @@ class CommentServiceTest {
 
     @Test
     @DisplayName("returns comments for a recipe")
-    void getComments_withExistingRecipe_returnsList() {
+    void getComments_withExistingRecipe_returnsPage() {
+        Pageable pageable = Pageable.unpaged();
         when(recipeRepository.existsById(100L)).thenReturn(true);
-        when(commentRepository.findByRecipeIdOrderByCreatedAtDesc(100L)).thenReturn(List.of(comment));
+        when(commentRepository.findByRecipeIdOrderByCreatedAtDesc(100L, pageable))
+                .thenReturn(new PageImpl<>(List.of(comment)));
         when(commentMapper.toResponse(comment)).thenReturn(CommentResponse.of(comment));
 
-        List<CommentResponse> responses = commentService.getComments(100L);
+        Page<CommentResponse> responses = commentService.getComments(100L, pageable);
 
         assertThat(responses).hasSize(1);
-        assertThat(responses.getFirst().text()).isEqualTo("Great recipe!");
+        assertThat(responses.getContent().getFirst().text()).isEqualTo("Great recipe!");
     }
 
     @Test
     @DisplayName("throws ResourceNotFoundException when listing comments for non-existent recipe")
     void getComments_withNonExistentRecipe_throwsException() {
+        Pageable pageable = Pageable.unpaged();
         when(recipeRepository.existsById(999L)).thenReturn(false);
 
-        assertThatThrownBy(() -> commentService.getComments(999L))
+        assertThatThrownBy(() -> commentService.getComments(999L, pageable))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("999");
     }

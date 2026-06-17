@@ -28,6 +28,8 @@ import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -114,20 +116,21 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/recipes/{recipeId}/comments returns list")
+    @DisplayName("GET /api/v1/recipes/{recipeId}/comments returns paginated list")
     void getComments_withExistingRecipe_returns200() throws Exception {
-        when(commentService.getComments(100L)).thenReturn(List.of(commentResponse));
+        when(commentService.getComments(eq(100L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(commentResponse)));
 
         mockMvc.perform(get("/api/v1/recipes/100/comments"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(10))
-                .andExpect(jsonPath("$[0].text").value("Great recipe!"));
+                .andExpect(jsonPath("$.content[0].id").value(10))
+                .andExpect(jsonPath("$.content[0].text").value("Great recipe!"));
     }
 
     @Test
     @DisplayName("GET /api/v1/recipes/{recipeId}/comments returns 404 when recipe not found")
     void getComments_withNonExistentRecipe_returns404() throws Exception {
-        when(commentService.getComments(999L))
+        when(commentService.getComments(eq(999L), any(Pageable.class)))
                 .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
 
         mockMvc.perform(get("/api/v1/recipes/999/comments")).andExpect(status().isNotFound());
