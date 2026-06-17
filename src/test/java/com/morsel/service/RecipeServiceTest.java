@@ -3,6 +3,7 @@ package com.morsel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
@@ -121,10 +123,51 @@ class RecipeServiceTest {
     void findAll_returnsPagedResponses() {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
-        when(recipeRepository.findAll(pageable)).thenReturn(recipePage);
+        when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
         when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
 
         Page<RecipeResponse> result = recipeService.findAll(pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");
+    }
+
+    @Test
+    @DisplayName("filters recipes by keyword")
+    void findAll_withKeyword_returnsFilteredResults() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
+        when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
+        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+
+        Page<RecipeResponse> result = recipeService.findAll("Original", null, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");
+    }
+
+    @Test
+    @DisplayName("filters recipes by ingredients")
+    void findAll_withIngredients_returnsFilteredResults() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
+        when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
+        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+
+        Page<RecipeResponse> result = recipeService.findAll(null, List.of(10L), pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("filters recipes by keyword and ingredients combined")
+    void findAll_withKeywordAndIngredients_returnsCombinedResults() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
+        when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
+        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+
+        Page<RecipeResponse> result = recipeService.findAll("Original", List.of(10L), pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");
@@ -218,7 +261,7 @@ class RecipeServiceTest {
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessageContaining("Only admins");
 
-        verify(recipeRepository, never()).delete(any());
+        verify(recipeRepository, never()).delete((Recipe) any());
     }
 
     @Test

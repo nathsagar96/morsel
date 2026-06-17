@@ -6,6 +6,7 @@ import com.morsel.dto.response.RecipeResponse;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.RecipeService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -44,9 +45,11 @@ public class RecipeController {
 
     @GetMapping
     public Page<RecipeResponse> findAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) List<Long> ingredients,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        log.debug("Find all recipes with pageable: {}", pageable);
-        return recipeService.findAll(pageable);
+        log.debug("Find recipes: keyword={}, ingredients={}, pageable={}", keyword, ingredients, pageable);
+        return recipeService.findAll(keyword, ingredients, pageable);
     }
 
     @GetMapping("/{id}")

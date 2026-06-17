@@ -12,6 +12,7 @@ import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.IngredientRepository;
 import com.morsel.repository.RecipeRepository;
+import com.morsel.specification.RecipeSpecification;
 import com.morsel.storage.FileStorageService;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,7 +46,19 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public Page<RecipeResponse> findAll(Pageable pageable) {
-        return recipeRepository.findAll(pageable).map(recipeMapper::toResponse);
+        return findAll(null, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<RecipeResponse> findAll(String keyword, List<Long> ingredientIds, Pageable pageable) {
+        Specification<Recipe> spec = (_, _, cb) -> cb.conjunction();
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(RecipeSpecification.withKeyword(keyword));
+        }
+        if (ingredientIds != null && !ingredientIds.isEmpty()) {
+            spec = spec.and(RecipeSpecification.withIngredients(ingredientIds));
+        }
+        return recipeRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
     }
 
     @Transactional(readOnly = true)

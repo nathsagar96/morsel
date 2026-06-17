@@ -42,25 +42,26 @@ com.morsel
 ├── repository/                      # JpaRepository interfaces
 ├── security/                        # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal (record implements UserDetails)
 ├── service/                         # UserService, CustomUserDetailsService, RecipeService, CommentService, RatingService
+├── specification/                   # RecipeSpecification (JPA Criteria API static factories)
 └── storage/                         # FileStorageService (interface), LocalFileStorageService
 ```
 
 **API endpoints** (12 total):
 
-| Action                   | Path                                       | Auth          |
-|--------------------------|--------------------------------------------|---------------|
-| Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     |
-| Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     |
-| Create recipe            | `POST /api/v1/recipes`                     | authenticated |
-| List recipes (paginated) | `GET /api/v1/recipes`                      | authenticated |
-| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | authenticated |
-| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   |
-| Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   |
-| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    |
-| Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated |
-| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | authenticated |
-| Add/update rating        | `POST /api/v1/recipes/{recipeId}/ratings`  | authenticated |
-| Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     |
+| Action                   | Path                                       | Auth          | Query params                               |
+|--------------------------|--------------------------------------------|---------------|--------------------------------------------|
+| Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     | —                                          |
+| Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     | —                                          |
+| Create recipe            | `POST /api/v1/recipes`                     | authenticated | —                                          |
+| List recipes (paginated) | `GET /api/v1/recipes`                      | authenticated | `keyword`, `ingredients` (comma-separated) |
+| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | authenticated | —                                          |
+| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   | —                                          |
+| Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   | —                                          |
+| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    | —                                          |
+| Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated | —                                          |
+| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | authenticated | —                                          |
+| Add/update rating        | `POST /api/v1/recipes/{recipeId}/ratings`  | authenticated | —                                          |
+| Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     | —                                          |
 
 **Entity model**:
 
@@ -70,8 +71,9 @@ com.morsel
 - `Recipe` ↔ `Ingredient` is a bidirectional `@ManyToMany` via `recipe_ingredients` join table
 - All `@ManyToOne` are `FetchType.LAZY`; OSIV is disabled (`open-in-view=false`)
 - Lazy collections require `@Transactional` or `@EntityGraph` to avoid `LazyInitializationException`
-- `RecipeRepository` uses `@EntityGraph(attributePaths = {"author", "ingredients"})` on `findAll` and
-  `findWithDetailsById`
+- `RecipeRepository` extends `JpaSpecificationExecutor<Recipe>` with `@EntityGraph` on its `findAll` overrides
+- `RecipeSpecification` provides static factories for keyword search (LIKE on `title`/`description`) and ingredient
+  filter (JOIN + IN, ANY semantics) via JPA Criteria API
 
 ## Conventions
 
@@ -102,7 +104,7 @@ com.morsel
 - Image serving (`GET /api/v1/images/{filename}`) is public (permitAll)
 - Multipart limits: 5MB per file, 10MB per request (`spring.servlet.multipart`)
 
-## Tests (106 total)
+## Tests (112 total)
 
 Four styles, all under `src/test/java/com/morsel/`:
 
@@ -130,6 +132,14 @@ Four styles, all under `src/test/java/com/morsel/`:
 - `@EnableJpaAuditing` in `JpaConfig` (for `@CreationTimestamp`/`@UpdateTimestamp`)
 - **`@EntityGraph`** is required on any repository method that serves response serialization (avoids N+1 with OSIV
   disabled)
+- **`RecipeRepository`** extends `JpaSpecificationExecutor` — the overridden `findAll(Specification, Pageable)` must
+  also
+  carry `@EntityGraph`
+- **`Specification.where(null)` is ambiguous** in Spring Data JPA 3.x — both `Specification<T>` and
+  `PredicateSpecification<T>` overloads match. Use `(root, query, cb) -> cb.conjunction()` as the match-all starting
+  point instead
+- **LIKE wildcards must be escaped** in `RecipeSpecification.withKeyword()` — escape `_` and `%` with a custom escape
+  character (`!`) to prevent unexpected pattern matching
 - **Ingredient lookup** validates all requested IDs exist — throws `ResourceNotFoundException` listing missing IDs
 - **Update does not call `save()`** — entity is managed inside `@Transactional`, dirty flushing happens at commit
 - **Rating upsert** uses native PostgreSQL `INSERT ... ON CONFLICT DO UPDATE` for atomic one-rating-per-user — no
