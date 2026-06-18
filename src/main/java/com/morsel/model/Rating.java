@@ -1,8 +1,6 @@
 package com.morsel.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.*;
 
 @Entity
@@ -18,8 +16,6 @@ public class Rating {
     private Long id;
 
     @Column(nullable = false)
-    @Min(value = 1, message = "Score must be at least 1")
-    @Max(value = 5, message = "Score must be at most 5")
     private Integer score;
 
     @ManyToOne(fetch = FetchType.LAZY)

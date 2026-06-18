@@ -8,9 +8,10 @@ import com.morsel.model.Recipe;
 import com.morsel.model.User;
 import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,10 +54,11 @@ public class FavoriteService {
     }
 
     @Transactional(readOnly = true)
-    public List<RecipeResponse> getFavorites(User currentUser) {
-        User user = findUserWithFavorites(currentUser.getId());
-        log.debug("Fetched {} favorites for user {}", user.getFavorites().size(), currentUser.getId());
-        return user.getFavorites().stream().map(recipeMapper::toResponse).toList();
+    public Page<RecipeResponse> getFavorites(User currentUser, Pageable pageable) {
+        log.debug("Fetched favorites for user {} with pageable {}", currentUser.getId(), pageable);
+        return recipeRepository
+                .findByFavoritedBy_Id(currentUser.getId(), pageable)
+                .map(recipeMapper::toResponse);
     }
 
     private User findUserWithFavorites(Long id) {

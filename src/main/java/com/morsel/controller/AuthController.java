@@ -1,6 +1,7 @@
 package com.morsel.controller;
 
 import com.morsel.dto.request.LoginRequest;
+import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
 import com.morsel.service.UserService;
@@ -33,5 +34,11 @@ public class AuthController {
     public AuthResponse signin(@Valid @RequestBody LoginRequest request) {
         log.debug("Signin request for user: {}", request.usernameOrEmail());
         return userService.authenticate(request);
+    }
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        log.debug("Refresh token request received");
+        return userService.refreshAccessToken(request);
     }
 }

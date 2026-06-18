@@ -68,6 +68,7 @@ public class RecipeController {
     }
 
     @PostMapping("/{id}/image")
+    @ResponseStatus(HttpStatus.CREATED)
     public RecipeResponse uploadImage(
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file,

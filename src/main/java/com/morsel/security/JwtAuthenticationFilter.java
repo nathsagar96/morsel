@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            log.debug("Failed to authenticate request: {}", e.getMessage());
+            log.warn("Failed to authenticate request", e);
             SecurityContextHolder.clearContext();
         }
 

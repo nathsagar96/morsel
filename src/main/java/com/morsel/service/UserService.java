@@ -1,10 +1,12 @@
 package com.morsel.service;
 
 import com.morsel.dto.request.LoginRequest;
+import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
 import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.DuplicateResourceException;
+import com.morsel.exception.ForbiddenException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
@@ -12,6 +14,7 @@ import com.morsel.model.User;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,9 +56,10 @@ public class UserService {
             throw new DuplicateResourceException("Username or email already exists");
         }
 
-        String token = jwtTokenProvider.generateToken(user.getId());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
         log.info("User registered: {}", request.username());
-        return userMapper.toAuthResponse(user, token);
+        return userMapper.toAuthResponse(user, accessToken, refreshToken);
     }
 
     public AuthResponse authenticate(LoginRequest request) {
@@ -64,9 +68,28 @@ public class UserService {
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         User user = principal.user();
-        String token = jwtTokenProvider.generateToken(user.getId());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
         log.info("User signed in: {}", user.getUsername());
-        return userMapper.toAuthResponse(user, token);
+        return userMapper.toAuthResponse(user, accessToken, refreshToken);
+    }
+
+    public AuthResponse refreshAccessToken(RefreshTokenRequest request) {
+        Optional<Long> userId = jwtTokenProvider.getUserIdIfValid(request.refreshToken());
+        if (userId.isEmpty()) {
+            log.warn("Refresh token validation failed");
+            throw new ForbiddenException("Invalid or expired refresh token");
+        }
+
+        User user = userRepository.findById(userId.get()).orElseThrow(() -> {
+            log.warn("User not found for refresh token, userId: {}", userId.get());
+            return new ForbiddenException("Invalid or expired refresh token");
+        });
+
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        log.debug("Tokens refreshed for user {}", user.getUsername());
+        return userMapper.toAuthResponse(user, newAccessToken, newRefreshToken);
     }
 
     @Transactional(readOnly = true)

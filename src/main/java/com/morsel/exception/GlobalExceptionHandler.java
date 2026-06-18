@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
-        log.warn("Authentication failure: {}", ex.getMessage());
+        log.debug("Authentication failure: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
         problem.setTitle("Unauthorized");
         problem.setDetail("Invalid username or password");

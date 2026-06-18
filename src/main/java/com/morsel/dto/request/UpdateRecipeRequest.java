@@ -1,10 +1,11 @@
 package com.morsel.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record UpdateRecipeRequest(
-        @NotBlank String title,
+        @NotBlank @Size(max = 255) String title,
         String description,
         @NotBlank String instructions,
         String imageUrl,

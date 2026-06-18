@@ -19,8 +19,8 @@ public class UserMapper {
                 .build();
     }
 
-    public AuthResponse toAuthResponse(User user, String token) {
-        return AuthResponse.of(token, user.getId(), user.getUsername(), user.getEmail());
+    public AuthResponse toAuthResponse(User user, String token, String refreshToken) {
+        return AuthResponse.of(token, refreshToken, user.getId(), user.getUsername(), user.getEmail());
     }
 
     public UserProfileResponse toProfileResponse(User user) {

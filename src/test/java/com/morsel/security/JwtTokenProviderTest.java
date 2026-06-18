@@ -13,28 +13,48 @@ class JwtTokenProviderTest {
 
     private static final String TEST_SECRET = "VQxKJyDLXKDmK8JJeiLnH03vPoNWX0j2ruOlIS5xNMc=";
     private static final long EXPIRATION_MS = 3600000;
+    private static final long REFRESH_EXPIRATION_MS = 604800000;
 
     private JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
     void setUp() {
-        JwtProperties jwtProperties = new JwtProperties(TEST_SECRET, EXPIRATION_MS);
+        JwtProperties jwtProperties = new JwtProperties(TEST_SECRET, EXPIRATION_MS, REFRESH_EXPIRATION_MS);
         jwtTokenProvider = new JwtTokenProvider(jwtProperties);
     }
 
     @Test
-    @DisplayName("generates valid JWT with three parts")
-    void generateToken_returnsValidToken() {
-        String token = jwtTokenProvider.generateToken(1L);
+    @DisplayName("generates valid access JWT with three parts")
+    void generateAccessToken_returnsValidToken() {
+        String token = jwtTokenProvider.generateAccessToken(1L);
 
         assertThat(token).isNotNull();
         assertThat(token.split("\\.")).hasSize(3);
     }
 
     @Test
-    @DisplayName("returns userId from valid token")
-    void getUserIdIfValid_withValidToken_returnsUserId() {
-        String token = jwtTokenProvider.generateToken(42L);
+    @DisplayName("generates valid refresh JWT with three parts")
+    void generateRefreshToken_returnsValidToken() {
+        String token = jwtTokenProvider.generateRefreshToken(1L);
+
+        assertThat(token).isNotNull();
+        assertThat(token.split("\\.")).hasSize(3);
+    }
+
+    @Test
+    @DisplayName("returns userId from valid access token")
+    void getUserIdIfValid_withValidAccessToken_returnsUserId() {
+        String token = jwtTokenProvider.generateAccessToken(42L);
+
+        Optional<Long> userId = jwtTokenProvider.getUserIdIfValid(token);
+
+        assertThat(userId).hasValue(42L);
+    }
+
+    @Test
+    @DisplayName("returns userId from valid refresh token")
+    void getUserIdIfValid_withValidRefreshToken_returnsUserId() {
+        String token = jwtTokenProvider.generateRefreshToken(42L);
 
         Optional<Long> userId = jwtTokenProvider.getUserIdIfValid(token);
 
@@ -44,8 +64,8 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("returns correct userIds for multiple tokens")
     void getUserIdIfValid_withDifferentUserIds_returnsCorrectIds() {
-        String token1 = jwtTokenProvider.generateToken(1L);
-        String token2 = jwtTokenProvider.generateToken(100L);
+        String token1 = jwtTokenProvider.generateAccessToken(1L);
+        String token2 = jwtTokenProvider.generateAccessToken(100L);
 
         assertThat(jwtTokenProvider.getUserIdIfValid(token1)).hasValue(1L);
         assertThat(jwtTokenProvider.getUserIdIfValid(token2)).hasValue(100L);
@@ -62,7 +82,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("returns empty for tampered token")
     void getUserIdIfValid_withTamperedToken_returnsEmpty() {
-        String token = jwtTokenProvider.generateToken(1L);
+        String token = jwtTokenProvider.generateAccessToken(1L);
         String tampered = token.substring(0, token.length() - 4) + "xxxx";
 
         Optional<Long> userId = jwtTokenProvider.getUserIdIfValid(tampered);
@@ -87,11 +107,25 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("returns empty for expired token")
-    void getUserIdIfValid_withExpiredToken_returnsEmpty() throws InterruptedException {
-        JwtProperties shortLived = new JwtProperties(TEST_SECRET, 1);
+    @DisplayName("returns empty for expired access token")
+    void getUserIdIfValid_withExpiredAccessToken_returnsEmpty() throws InterruptedException {
+        JwtProperties shortLived = new JwtProperties(TEST_SECRET, 1, REFRESH_EXPIRATION_MS);
         JwtTokenProvider shortLivedProvider = new JwtTokenProvider(shortLived);
-        String token = shortLivedProvider.generateToken(1L);
+        String token = shortLivedProvider.generateAccessToken(1L);
+
+        Thread.sleep(5);
+
+        Optional<Long> userId = shortLivedProvider.getUserIdIfValid(token);
+
+        assertThat(userId).isEmpty();
+    }
+
+    @Test
+    @DisplayName("returns empty for expired refresh token")
+    void getUserIdIfValid_withExpiredRefreshToken_returnsEmpty() throws InterruptedException {
+        JwtProperties shortLived = new JwtProperties(TEST_SECRET, EXPIRATION_MS, 1);
+        JwtTokenProvider shortLivedProvider = new JwtTokenProvider(shortLived);
+        String token = shortLivedProvider.generateRefreshToken(1L);
 
         Thread.sleep(5);
 

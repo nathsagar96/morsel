@@ -27,6 +27,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FavoriteService")
@@ -129,26 +131,27 @@ class FavoriteServiceTest {
     }
 
     @Test
-    @DisplayName("returns list of favorite recipes")
+    @DisplayName("returns page of favorite recipes")
     void getFavorites_withFavorites_returnsRecipeResponses() {
-        user.getFavorites().add(recipe);
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
+        var recipePage = new org.springframework.data.domain.PageImpl<>(List.of(recipe));
+        when(recipeRepository.findByFavoritedBy_Id(1L, Pageable.unpaged())).thenReturn(recipePage);
         RecipeResponse response =
                 new RecipeResponse(100L, "Test Recipe", null, null, null, 1L, "testuser", List.of(), 0.0, 0, now, now);
         when(recipeMapper.toResponse(recipe)).thenReturn(response);
 
-        List<RecipeResponse> results = favoriteService.getFavorites(user);
+        Page<RecipeResponse> results = favoriteService.getFavorites(user, Pageable.unpaged());
 
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().id()).isEqualTo(100L);
+        assertThat(results.getContent().getFirst().id()).isEqualTo(100L);
     }
 
     @Test
-    @DisplayName("returns empty list when no favorites")
+    @DisplayName("returns empty page when no favorites")
     void getFavorites_withNoFavorites_returnsEmptyList() {
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
+        when(recipeRepository.findByFavoritedBy_Id(1L, Pageable.unpaged()))
+                .thenReturn(org.springframework.data.domain.Page.empty());
 
-        List<RecipeResponse> results = favoriteService.getFavorites(user);
+        Page<RecipeResponse> results = favoriteService.getFavorites(user, Pageable.unpaged());
 
         assertThat(results).isEmpty();
         verify(recipeMapper, never()).toResponse(any());

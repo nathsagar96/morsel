@@ -270,13 +270,13 @@ class RecipeControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/recipes/{id}/image returns 200 for owner with valid file")
-    void uploadImage_byOwner_returns200() throws Exception {
+    @DisplayName("POST /api/v1/recipes/{id}/image returns 201 for owner with valid file")
+    void uploadImage_byOwner_returns201() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "image-content".getBytes());
         when(recipeService.uploadImage(eq(100L), any(), any(User.class))).thenReturn(recipeResponse);
 
         mockMvc.perform(multipart(HttpMethod.POST, "/api/v1/recipes/100/image").file(file))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(100));
     }
 

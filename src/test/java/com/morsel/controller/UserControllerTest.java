@@ -89,12 +89,13 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/users/me/favorites returns list")
+    @DisplayName("GET /api/v1/users/me/favorites returns page")
     void getMyFavorites_returns200() throws Exception {
-        when(favoriteService.getFavorites(any(User.class))).thenReturn(List.of());
+        when(favoriteService.getFavorites(any(User.class), any()))
+                .thenReturn(org.springframework.data.domain.Page.empty());
 
         mockMvc.perform(get("/api/v1/users/me/favorites"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.content").isArray());
     }
 }

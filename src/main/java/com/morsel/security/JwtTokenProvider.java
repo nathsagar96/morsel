@@ -24,11 +24,24 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret()));
     }
 
-    public String generateToken(Long userId) {
+    public String generateAccessToken(Long userId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtProperties.expirationMs());
 
-        log.debug("Generating JWT for user {}", userId);
+        log.debug("Generating access token for user {}", userId);
+        return Jwts.builder()
+                .subject(userId.toString())
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
+                .compact();
+    }
+
+    public String generateRefreshToken(Long userId) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + jwtProperties.refreshExpirationMs());
+
+        log.debug("Generating refresh token for user {}", userId);
         return Jwts.builder()
                 .subject(userId.toString())
                 .issuedAt(now)
@@ -46,7 +59,7 @@ public class JwtTokenProvider {
                     .getPayload();
             return Optional.of(Long.parseLong(claims.getSubject()));
         } catch (JwtException | IllegalArgumentException e) {
-            log.warn("Invalid JWT: {}", e.getMessage());
+            log.debug("Invalid JWT: {}", e.getMessage());
             return Optional.empty();
         }
     }

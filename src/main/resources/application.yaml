@@ -24,7 +24,8 @@ app:
   jwt:
     # Override JWT_SECRET in production with a strong random base64-encoded key
     secret: ${JWT_SECRET:SBaL2tluRm6kW29kzJ+RboD4PFZr9pRWI+tLg1SvqGM=}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
   storage:
     upload-dir: ${APP_UPLOAD_DIR:uploads}
 
