@@ -38,7 +38,7 @@ public class LocalFileStorageService implements FileStorageService {
             Files.createDirectories(uploadDir);
             log.info("File upload directory created/verified: {}", uploadDir);
         } catch (IOException e) {
-            throw new RuntimeException("Could not create upload directory: " + uploadDir, e);
+            throw new IllegalStateException("Could not create upload directory: " + uploadDir, e);
         }
     }
 
@@ -59,7 +59,7 @@ public class LocalFileStorageService implements FileStorageService {
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("File stored: {}", targetPath);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file: " + storedFilename, e);
+            throw new IllegalStateException("Failed to store file: " + storedFilename, e);
         }
         return IMAGE_URL_PREFIX + storedFilename;
     }
@@ -77,7 +77,7 @@ public class LocalFileStorageService implements FileStorageService {
             }
             throw new ResourceNotFoundException("Image not found: " + filename);
         } catch (MalformedURLException e) {
-            throw new RuntimeException("Failed to load file: " + filename, e);
+            throw new IllegalStateException("Failed to load file: " + filename, e);
         }
     }
 

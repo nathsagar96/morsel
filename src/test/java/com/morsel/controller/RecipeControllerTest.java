@@ -74,6 +74,7 @@ class RecipeControllerTest {
 
     @BeforeEach
     void setUpAuth() {
+        SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
         SecurityContextHolder.getContext()
                 .setAuthentication(new UsernamePasswordAuthenticationToken(
                         authorPrincipal, null, authorPrincipal.getAuthorities()));

@@ -55,6 +55,7 @@ class FavoriteControllerTest {
 
     @BeforeEach
     void setUpAuth() {
+        SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
         SecurityContextHolder.getContext()
                 .setAuthentication(
                         new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities()));
