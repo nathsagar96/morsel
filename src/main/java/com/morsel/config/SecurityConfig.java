@@ -1,5 +1,6 @@
 package com.morsel.config;
 
+import com.morsel.constants.ApiPaths;
 import com.morsel.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,11 +36,22 @@ public class SecurityConfig {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/**")
+                .headers(
+                        headers -> headers.contentTypeOptions(contentType -> {})
+                                .frameOptions(frame -> frame.deny())
+                                .xssProtection(xss -> {})
+                                .httpStrictTransportSecurity(
+                                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                                .referrerPolicy(referrer ->
+                                        referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                                .permissionsPolicy(
+                                        permissions -> permissions.policy(
+                                                "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()")))
+                .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, ApiPaths.AUTH_WILDCARD)
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/images/**")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.IMAGES_WILDCARD)
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/recipes/**")
+                        .requestMatchers(HttpMethod.GET, ApiPaths.RECIPES_WILDCARD)
                         .permitAll()
                         .anyRequest()
                         .authenticated())
@@ -63,7 +76,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(corsProperties.allowedMethods());
         configuration.setAllowedHeaders(corsProperties.allowedHeaders());
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration(ApiPaths.CORS_WILDCARD, configuration);
         return source;
     }
 }

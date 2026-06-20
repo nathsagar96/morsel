@@ -1,5 +1,6 @@
 package com.morsel.controller;
 
+import com.morsel.constants.ApiPaths;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.FavoriteService;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/recipes/{recipeId}/favorite")
+@RequestMapping(ApiPaths.RECIPE_FAVORITE)
 @RequiredArgsConstructor
 @Slf4j
 public class FavoriteController {

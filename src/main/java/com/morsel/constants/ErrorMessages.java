@@ -1,0 +1,23 @@
+package com.morsel.constants;
+
+public final class ErrorMessages {
+
+    private ErrorMessages() {}
+
+    public static final String VALIDATION_FAILURE_TITLE = "Validation Failure";
+
+    public static final String UNAUTHORIZED_TITLE = "Unauthorized";
+    public static final String INVALID_CREDENTIALS = "Invalid username or password";
+
+    public static final String FORBIDDEN_TITLE = "Forbidden";
+    public static final String ACCESS_DENIED = "Access denied";
+    public static final String ACCOUNT_DISABLED = "Account is disabled";
+
+    public static final String TOO_MANY_REQUESTS_TITLE = "Too Many Requests";
+    public static final String ACCOUNT_LOCKED = "Account is temporarily locked due to too many failed login attempts";
+
+    public static final String INTERNAL_SERVER_ERROR_TITLE = "Internal Server Error";
+    public static final String UNEXPECTED_ERROR = "An unexpected error occurred";
+
+    public static final String MESSAGE_KEY = "message";
+}

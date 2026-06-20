@@ -1,5 +1,6 @@
 package com.morsel.controller;
 
+import com.morsel.constants.ApiPaths;
 import com.morsel.dto.request.CommentRequest;
 import com.morsel.dto.response.CommentResponse;
 import com.morsel.security.UserPrincipal;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/recipes/{recipeId}/comments")
+@RequestMapping(ApiPaths.RECIPE_COMMENTS)
 @RequiredArgsConstructor
 @Slf4j
 public class CommentController {

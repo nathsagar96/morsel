@@ -1,5 +1,7 @@
 package com.morsel.controller;
 
+import com.morsel.constants.ApiPaths;
+import com.morsel.constants.ErrorMessages;
 import com.morsel.dto.request.ForgotPasswordRequest;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
@@ -20,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping(ApiPaths.AUTH)
 @RequiredArgsConstructor
 @Slf4j
 public class AuthController {
@@ -52,7 +54,7 @@ public class AuthController {
     public Map<String, String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         log.debug("Password reset requested for email: {}", request.email());
         passwordResetService.initiatePasswordReset(request.email());
-        return Map.of("message", "If the email exists, a password reset link has been sent");
+        return Map.of(ErrorMessages.MESSAGE_KEY, "If the email exists, a password reset link has been sent");
     }
 
     @PostMapping("/reset-password")
@@ -60,6 +62,6 @@ public class AuthController {
     public Map<String, String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         log.debug("Password reset attempt with token");
         passwordResetService.resetPassword(request.token(), request.newPassword());
-        return Map.of("message", "Password has been reset successfully");
+        return Map.of(ErrorMessages.MESSAGE_KEY, "Password has been reset successfully");
     }
 }

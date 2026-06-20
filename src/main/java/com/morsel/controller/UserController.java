@@ -1,5 +1,7 @@
 package com.morsel.controller;
 
+import com.morsel.constants.ApiPaths;
+import com.morsel.constants.ErrorMessages;
 import com.morsel.dto.request.UserStatusRequest;
 import com.morsel.dto.response.RecipeResponse;
 import com.morsel.dto.response.UserProfileResponse;
@@ -28,7 +30,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping(ApiPaths.USERS)
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
@@ -61,6 +63,7 @@ public class UserController {
         user.setEnabled(request.enabled());
         userRepository.save(user);
         log.info("User {} {} by admin", id, request.enabled() ? "enabled" : "disabled");
-        return Map.of("message", "User " + (request.enabled() ? "enabled" : "disabled") + " successfully");
+        return Map.of(
+                ErrorMessages.MESSAGE_KEY, "User " + (request.enabled() ? "enabled" : "disabled") + " successfully");
     }
 }

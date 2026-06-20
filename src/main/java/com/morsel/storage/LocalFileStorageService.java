@@ -1,6 +1,7 @@
 package com.morsel.storage;
 
 import com.morsel.config.StorageProperties;
+import com.morsel.constants.ApiPaths;
 import com.morsel.exception.InvalidFileException;
 import com.morsel.exception.ResourceNotFoundException;
 import jakarta.annotation.PostConstruct;
@@ -32,7 +33,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class LocalFileStorageService implements FileStorageService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "gif", "webp");
-    private static final String IMAGE_URL_PREFIX = "/api/v1/images/";
 
     private static final byte[] JPEG_MAGIC = HexFormat.of().parseHex("ffd8ff");
     private static final byte[] PNG_MAGIC = HexFormat.of().parseHex("89504e470d0a1a0a");
@@ -93,7 +93,7 @@ public class LocalFileStorageService implements FileStorageService {
             transcodeImage(image, extension, targetPath);
             log.info("Image stored and transcoded: {}", targetPath);
         }
-        return IMAGE_URL_PREFIX + storedFilename;
+        return ApiPaths.IMAGES_PREFIX + storedFilename;
     }
 
     @Override

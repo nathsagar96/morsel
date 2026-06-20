@@ -1,5 +1,6 @@
 package com.morsel.controller;
 
+import com.morsel.constants.ApiPaths;
 import com.morsel.dto.request.RatingRequest;
 import com.morsel.dto.response.RatingResponse;
 import com.morsel.security.UserPrincipal;
@@ -15,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/recipes/{recipeId}/ratings")
+@RequestMapping(ApiPaths.RECIPE_RATINGS)
 @RequiredArgsConstructor
 @Slf4j
 public class RatingController {

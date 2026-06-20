@@ -1,5 +1,6 @@
 package com.morsel.exception;
 
+import com.morsel.constants.ErrorMessages;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -32,7 +33,7 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         log.debug("Validation failure: {}", errors);
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
-        problem.setTitle("Validation Failure");
+        problem.setTitle(ErrorMessages.VALIDATION_FAILURE_TITLE);
         problem.setDetail(errors);
         return problem;
     }
@@ -41,8 +42,8 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
         log.debug("Authentication failure: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
-        problem.setTitle("Unauthorized");
-        problem.setDetail("Invalid username or password");
+        problem.setTitle(ErrorMessages.UNAUTHORIZED_TITLE);
+        problem.setDetail(ErrorMessages.INVALID_CREDENTIALS);
         return problem;
     }
 
@@ -50,8 +51,8 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
-        problem.setTitle("Forbidden");
-        problem.setDetail("Access denied");
+        problem.setTitle(ErrorMessages.FORBIDDEN_TITLE);
+        problem.setDetail(ErrorMessages.ACCESS_DENIED);
         return problem;
     }
 
@@ -59,8 +60,8 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleLocked(LockedException ex) {
         log.debug("Account locked: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.TOO_MANY_REQUESTS);
-        problem.setTitle("Too Many Requests");
-        problem.setDetail("Account is temporarily locked due to too many failed login attempts");
+        problem.setTitle(ErrorMessages.TOO_MANY_REQUESTS_TITLE);
+        problem.setDetail(ErrorMessages.ACCOUNT_LOCKED);
         return problem;
     }
 
@@ -68,8 +69,8 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleDisabled(DisabledException ex) {
         log.debug("Account disabled: {}", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
-        problem.setTitle("Forbidden");
-        problem.setDetail("Account is disabled");
+        problem.setTitle(ErrorMessages.FORBIDDEN_TITLE);
+        problem.setDetail(ErrorMessages.ACCOUNT_DISABLED);
         return problem;
     }
 
@@ -77,8 +78,8 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleGeneric(Exception ex) {
         log.error("Unexpected error", ex);
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-        problem.setTitle("Internal Server Error");
-        problem.setDetail("An unexpected error occurred");
+        problem.setTitle(ErrorMessages.INTERNAL_SERVER_ERROR_TITLE);
+        problem.setDetail(ErrorMessages.UNEXPECTED_ERROR);
         return problem;
     }
 }

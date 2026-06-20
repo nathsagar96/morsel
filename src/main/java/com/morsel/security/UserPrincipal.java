@@ -1,5 +1,6 @@
 package com.morsel.security;
 
+import com.morsel.constants.AuthConstants;
 import com.morsel.model.User;
 import java.util.Collection;
 import java.util.List;
@@ -11,7 +12,8 @@ public record UserPrincipal(User user) implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        return List.of(new SimpleGrantedAuthority(
+                AuthConstants.ROLE_PREFIX + user.getRole().name()));
     }
 
     @Override

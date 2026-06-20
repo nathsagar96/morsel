@@ -1,5 +1,6 @@
 package com.morsel.controller;
 
+import com.morsel.constants.ApiPaths;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
@@ -32,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/v1/recipes")
+@RequestMapping(ApiPaths.RECIPES)
 @RequiredArgsConstructor
 @Slf4j
 public class RecipeController {
