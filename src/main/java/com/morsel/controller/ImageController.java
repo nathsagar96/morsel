@@ -2,6 +2,7 @@ package com.morsel.controller;
 
 import com.morsel.constants.ApiPaths;
 import com.morsel.storage.FileStorageService;
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(ApiPaths.IMAGES)
 @RequiredArgsConstructor
 @Slf4j
+@Hidden
 public class ImageController {
 
     private final FileStorageService fileStorageService;

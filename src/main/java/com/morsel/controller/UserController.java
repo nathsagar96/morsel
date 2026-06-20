@@ -15,6 +15,7 @@ import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.FavoriteService;
 import com.morsel.service.UserProfileService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(ApiPaths.USERS)
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Users", description = "User profiles and account management")
 public class UserController {
 
     private final UserProfileService userProfileService;

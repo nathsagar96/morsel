@@ -10,6 +10,8 @@ import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
 import com.morsel.service.AuthService;
 import com.morsel.service.PasswordResetService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(ApiPaths.AUTH)
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Authentication", description = "User registration, login, and token management")
 public class AuthController {
 
     private final AuthService authService;
@@ -32,18 +35,21 @@ public class AuthController {
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
+    @SecurityRequirements
     public AuthResponse signup(@Valid @RequestBody SignUpRequest request) {
         log.debug("Signup request for user: {}", request.username());
         return authService.register(request);
     }
 
     @PostMapping("/signin")
+    @SecurityRequirements
     public AuthResponse signin(@Valid @RequestBody LoginRequest request) {
         log.debug("Signin request for user: {}", request.usernameOrEmail());
         return authService.authenticate(request);
     }
 
     @PostMapping("/refresh")
+    @SecurityRequirements
     public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
         log.debug("Refresh token request received");
         return authService.refreshAccessToken(request);
@@ -51,6 +57,7 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     @ResponseStatus(HttpStatus.OK)
+    @SecurityRequirements
     public Map<String, String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         log.debug("Password reset requested for email: {}", request.email());
         passwordResetService.initiatePasswordReset(request.email());
@@ -59,6 +66,7 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     @ResponseStatus(HttpStatus.OK)
+    @SecurityRequirements
     public Map<String, String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         log.debug("Password reset attempt with token");
         passwordResetService.resetPassword(request.token(), request.newPassword());

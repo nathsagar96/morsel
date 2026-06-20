@@ -8,6 +8,8 @@ import com.morsel.dto.response.RecipeSummaryResponse;
 import com.morsel.exception.BadRequestException;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.RecipeService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Set;
@@ -36,6 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping(ApiPaths.RECIPES)
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Recipes", description = "Create, read, update, and delete recipes")
 public class RecipeController {
 
     private static final Set<String> ALLOWED_SORT_FIELDS =
@@ -52,6 +55,7 @@ public class RecipeController {
     }
 
     @GetMapping
+    @SecurityRequirements
     public Page<RecipeSummaryResponse> findAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) List<Long> ingredients,
@@ -63,6 +67,7 @@ public class RecipeController {
     }
 
     @GetMapping("/{id}")
+    @SecurityRequirements
     public RecipeResponse findById(@PathVariable Long id) {
         log.debug("Find recipe by id: {}", id);
         return recipeService.findById(id);

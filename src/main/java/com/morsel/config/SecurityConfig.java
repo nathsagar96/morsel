@@ -52,6 +52,8 @@ public class SecurityConfig {
                                                 "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()")))
                 .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, ApiPaths.AUTH_WILDCARD)
                         .permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-ui/**", "/swagger-ui.html")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.IMAGES_WILDCARD)
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.RECIPES_WILDCARD)

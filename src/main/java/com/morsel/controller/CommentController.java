@@ -5,6 +5,8 @@ import com.morsel.dto.request.CommentRequest;
 import com.morsel.dto.response.CommentResponse;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.CommentService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(ApiPaths.RECIPE_COMMENTS)
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Comments", description = "Add and list comments on recipes")
 public class CommentController {
 
     private final CommentService commentService;
@@ -44,6 +47,7 @@ public class CommentController {
     }
 
     @GetMapping
+    @SecurityRequirements
     public Page<CommentResponse> getComments(
             @PathVariable Long recipeId,
             @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

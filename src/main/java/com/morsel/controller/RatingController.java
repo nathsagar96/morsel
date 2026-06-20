@@ -5,6 +5,7 @@ import com.morsel.dto.request.RatingRequest;
 import com.morsel.dto.response.RatingResponse;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.RatingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(ApiPaths.RECIPE_RATINGS)
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Ratings", description = "Rate recipes on a scale of 1 to 5")
 public class RatingController {
 
     private final RatingService ratingService;
