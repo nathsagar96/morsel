@@ -3,11 +3,11 @@ package com.morsel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.morsel.event.PasswordResetEvent;
 import com.morsel.exception.BadRequestException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.PasswordResetToken;
@@ -25,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,10 +42,10 @@ class PasswordResetServiceTest {
     private PasswordEncoder passwordEncoder;
 
     @Mock
-    private EmailService emailService;
+    private RefreshTokenService refreshTokenService;
 
     @Mock
-    private RefreshTokenService refreshTokenService;
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private PasswordResetService passwordResetService;
@@ -62,7 +63,7 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    @DisplayName("generates hashed token and sends email for existing user")
+    @DisplayName("generates hashed token and publishes event for existing user")
     void initiatePasswordReset_withExistingUser_sendsEmail() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
@@ -76,18 +77,22 @@ class PasswordResetServiceTest {
         assertThat(savedToken.getUserId()).isEqualTo(1L);
         assertThat(savedToken.getExpiresAt()).isAfter(Instant.now());
         assertThat(savedToken.isUsed()).isFalse();
-        verify(emailService).sendPasswordResetEmail(eq("test@example.com"), any(String.class));
+        ArgumentCaptor<PasswordResetEvent> eventCaptor = ArgumentCaptor.forClass(PasswordResetEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        PasswordResetEvent event = eventCaptor.getValue();
+        assertThat(event.email()).isEqualTo("test@example.com");
+        assertThat(event.token()).isNotNull();
     }
 
     @Test
-    @DisplayName("does not send email for non-existing user")
+    @DisplayName("does not publish event for non-existing user")
     void initiatePasswordReset_withNonExistingUser_doesNothing() {
         when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
 
         passwordResetService.initiatePasswordReset("unknown@example.com");
 
         verify(passwordResetTokenRepository, never()).save(any());
-        verify(emailService, never()).sendPasswordResetEmail(any(), any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

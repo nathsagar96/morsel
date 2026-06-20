@@ -1,8 +1,8 @@
 package com.morsel.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.resilience.annotation.EnableResilientMethods;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync
 @Configuration
-@EnableResilientMethods
 public class AppConfig {}

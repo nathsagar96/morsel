@@ -1,5 +1,6 @@
 package com.morsel.service;
 
+import com.morsel.event.PasswordResetEvent;
 import com.morsel.logging.PiiSanitizer;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -10,6 +11,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,12 @@ public class EmailServiceImpl implements EmailService {
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handlePasswordResetEvent(PasswordResetEvent event) {
+        sendPasswordResetEmail(event.email(), event.token());
+    }
 
     @Async
     @Override

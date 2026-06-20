@@ -1,5 +1,6 @@
 package com.morsel.service;
 
+import com.morsel.event.PasswordResetEvent;
 import com.morsel.exception.BadRequestException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.logging.AuditLogger;
@@ -19,6 +20,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,8 +33,8 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
     private final RefreshTokenService refreshTokenService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void initiatePasswordReset(String email) {
@@ -50,7 +52,7 @@ public class PasswordResetService {
             log.debug("Password reset token generated for user {}", user.getId());
             AuditLogger.log(Event.PASSWORD_RESET_INITIATED, user.getId(), Outcome.SUCCESS);
 
-            emailService.sendPasswordResetEmail(user.getEmail(), token);
+            eventPublisher.publishEvent(new PasswordResetEvent(user.getEmail(), token));
         });
     }
 

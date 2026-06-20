@@ -1,3 +1,5 @@
 package com.morsel.dto.request;
 
-public record UserStatusRequest(boolean enabled) {}
+import jakarta.validation.constraints.NotNull;
+
+public record UserStatusRequest(@NotNull Boolean enabled) {}

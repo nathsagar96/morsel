@@ -10,9 +10,6 @@ import com.morsel.repository.RatingRepository;
 import com.morsel.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.StaleObjectStateException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.resilience.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +24,6 @@ public class RatingService {
     private final RecipeRepository recipeRepository;
 
     @Transactional
-    @Retryable(
-            includes = {ObjectOptimisticLockingFailureException.class, StaleObjectStateException.class},
-            maxRetries = 2,
-            delay = 100)
     public RatingResponse addOrUpdateRating(Long recipeId, RatingRequest request, User user) {
         Recipe recipe = recipeService.findRecipeOrThrow(recipeId);
         ratingRepository.upsert(request.score(), user.getId(), recipeId);

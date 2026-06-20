@@ -13,13 +13,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HexFormat;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.FileImageOutputStream;
+import javax.imageio.stream.ImageInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -42,6 +45,8 @@ public class LocalFileStorageService implements FileStorageService {
     private static final byte[] WEBP_MAGIC = HexFormat.of().parseHex("57454250");
 
     private static final float JPEG_QUALITY = 0.70f;
+    private static final int MAX_DIMENSION = 10_000;
+    private static final long MAX_PIXEL_COUNT = 20_000_000L;
 
     private final StorageProperties storageProperties;
     private Path uploadDir;
@@ -75,6 +80,7 @@ public class LocalFileStorageService implements FileStorageService {
             throw new IllegalStateException("Failed to read uploaded file", e);
         }
         validateMagicBytes(fileBytes, extension);
+        validateImageDimensions(fileBytes, extension);
         BufferedImage image;
         try {
             image = ImageIO.read(new ByteArrayInputStream(fileBytes));
@@ -128,6 +134,36 @@ public class LocalFileStorageService implements FileStorageService {
         if (!valid) {
             throw new InvalidFileException(
                     "File content does not match ." + extension + " format — possible extension spoofing");
+        }
+    }
+
+    private void validateImageDimensions(byte[] bytes, String extension) {
+        try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
+            if (iis == null) {
+                throw new InvalidFileException("Cannot read image header");
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+            if (!readers.hasNext()) {
+                throw new InvalidFileException("No image reader available for ." + extension);
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(iis);
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                    throw new InvalidFileException(
+                            "Image dimensions too large: " + width + "x" + height + ". Max: " + MAX_DIMENSION);
+                }
+                if ((long) width * height > MAX_PIXEL_COUNT) {
+                    throw new InvalidFileException(
+                            "Image pixel count too large: " + ((long) width * height) + ". Max: " + MAX_PIXEL_COUNT);
+                }
+            } finally {
+                reader.dispose();
+            }
+        } catch (IOException e) {
+            throw new InvalidFileException("Failed to read image dimensions: " + e.getMessage());
         }
     }
 

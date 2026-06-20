@@ -15,6 +15,7 @@ import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.FavoriteService;
 import com.morsel.service.UserProfileService;
+import jakarta.validation.Valid;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,7 @@ public class UserController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.OK)
-    public Map<String, String> updateUserStatus(@PathVariable Long id, @RequestBody UserStatusRequest request) {
+    public Map<String, String> updateUserStatus(@PathVariable Long id, @Valid @RequestBody UserStatusRequest request) {
         log.debug("Admin request to update user {} status, enabled={}", id, request.enabled());
         User user =
                 userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
