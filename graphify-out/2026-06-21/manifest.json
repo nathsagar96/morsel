@@ -60,9 +60,9 @@
     "semantic_hash": "0cd14d1ab87dbd3bd50f26a7665146e7"
   },
   "src/main/java/com/morsel/config/SecurityConfig.java": {
-    "mtime": 1781984539.1940436,
-    "ast_hash": "7783502f213eafd663becd49cda4abad",
-    "semantic_hash": ""
+    "mtime": 1781982527.9584053,
+    "ast_hash": "ab5648a47c49ff3bf98dd9dc29faa9eb",
+    "semantic_hash": "ab5648a47c49ff3bf98dd9dc29faa9eb"
   },
   "src/main/java/com/morsel/config/StorageProperties.java": {
     "mtime": 1781954372.81614,
@@ -70,9 +70,9 @@
     "semantic_hash": "bc751796ababead596b0c8a76ec843cc"
   },
   "src/main/java/com/morsel/constants/ApiPaths.java": {
-    "mtime": 1781984538.4967263,
-    "ast_hash": "fc03841fed3fd6f5d013023f6a4faaad",
-    "semantic_hash": ""
+    "mtime": 1781954372.8162649,
+    "ast_hash": "1b5be1462b8a0a386e8b2ccd6190cce2",
+    "semantic_hash": "1b5be1462b8a0a386e8b2ccd6190cce2"
   },
   "src/main/java/com/morsel/constants/AppPropertyKeys.java": {
     "mtime": 1781954372.8170457,
@@ -265,9 +265,9 @@
     "semantic_hash": "2f0590a228e8371dd775b68e67eacb8c"
   },
   "src/main/java/com/morsel/logging/AuditLogger.java": {
-    "mtime": 1781984210.7510436,
-    "ast_hash": "0b3224ba7020ddc1502c7f83b3aba13d",
-    "semantic_hash": ""
+    "mtime": 1781954372.8258967,
+    "ast_hash": "ea1f94c92394340b21b5f41dd42811cc",
+    "semantic_hash": "ea1f94c92394340b21b5f41dd42811cc"
   },
   "src/main/java/com/morsel/logging/PiiSanitizer.java": {
     "mtime": 1781954372.8260162,
@@ -340,9 +340,9 @@
     "semantic_hash": "5d155433b112b0f8fd90aa86fe872614"
   },
   "src/main/java/com/morsel/repository/IngredientRepository.java": {
-    "mtime": 1781984210.1244097,
-    "ast_hash": "99fd1ac50e807c7d104eaabec0b3ac76",
-    "semantic_hash": ""
+    "mtime": 1781954372.8283,
+    "ast_hash": "85400b9f71607ca9636f13a39fab2988",
+    "semantic_hash": "85400b9f71607ca9636f13a39fab2988"
   },
   "src/main/java/com/morsel/repository/PasswordResetTokenRepository.java": {
     "mtime": 1781954372.828425,
@@ -643,40 +643,5 @@
     "mtime": 1781954372.8316295,
     "ast_hash": "a235e8732cc91c5c3a2f313a82180ee8",
     "semantic_hash": "a235e8732cc91c5c3a2f313a82180ee8"
-  },
-  "src/main/java/com/morsel/controller/IngredientController.java": {
-    "mtime": 1781984240.7836592,
-    "ast_hash": "7d8e9d0e0e8a67c2310c58a03bde7eb3",
-    "semantic_hash": ""
-  },
-  "src/main/java/com/morsel/dto/request/IngredientRequest.java": {
-    "mtime": 1781984223.9017985,
-    "ast_hash": "b2420e39bccd7852ddc8db719642ffb4",
-    "semantic_hash": ""
-  },
-  "src/main/java/com/morsel/dto/response/IngredientResponse.java": {
-    "mtime": 1781984225.15446,
-    "ast_hash": "24eef5b9d5bfbef0619e7d20beb8078b",
-    "semantic_hash": ""
-  },
-  "src/main/java/com/morsel/mapper/IngredientMapper.java": {
-    "mtime": 1781984226.6984456,
-    "ast_hash": "9082e9fcdbecb56ffc5cc11c8b6b9d0b",
-    "semantic_hash": ""
-  },
-  "src/main/java/com/morsel/service/IngredientService.java": {
-    "mtime": 1781984252.987554,
-    "ast_hash": "2ae99f36780ae198d7f3d7af2f9b3ba1",
-    "semantic_hash": ""
-  },
-  "src/test/java/com/morsel/controller/IngredientControllerTest.java": {
-    "mtime": 1781984292.3885617,
-    "ast_hash": "6238fa701920474e2e0e3c4f38b0c981",
-    "semantic_hash": ""
-  },
-  "src/test/java/com/morsel/service/IngredientServiceTest.java": {
-    "mtime": 1781984322.6790893,
-    "ast_hash": "fd800a3d99d896dfc661acf87a66feee",
-    "semantic_hash": ""
   }
 }

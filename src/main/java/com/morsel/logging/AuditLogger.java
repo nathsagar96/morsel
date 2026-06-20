@@ -27,7 +27,8 @@ public final class AuditLogger {
         PASSWORD_RESET_FAILURE_USED_TOKEN,
         JWT_REJECTED_DISABLED_LOCKED,
         ADMIN_USER_STATUS_CHANGE,
-        RECIPE_DELETED
+        RECIPE_DELETED,
+        INGREDIENT_DELETED
     }
 
     public enum Outcome {

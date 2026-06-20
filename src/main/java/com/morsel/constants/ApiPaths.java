@@ -18,6 +18,9 @@ public final class ApiPaths {
 
     public static final String USERS = API_V1 + "/users";
 
+    public static final String INGREDIENTS = API_V1 + "/ingredients";
+    public static final String INGREDIENTS_WILDCARD = INGREDIENTS + "/**";
+
     public static final String RECIPE_COMMENTS = RECIPES + "/{recipeId}/comments";
     public static final String RECIPE_RATINGS = RECIPES + "/{recipeId}/ratings";
     public static final String RECIPE_FAVORITE = RECIPES + "/{recipeId}/favorite";

@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.IMAGES_WILDCARD)
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, ApiPaths.INGREDIENTS_WILDCARD)
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.RECIPES_WILDCARD)
                         .permitAll()
                         .anyRequest()
