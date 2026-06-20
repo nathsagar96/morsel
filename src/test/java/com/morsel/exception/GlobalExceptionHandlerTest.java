@@ -47,7 +47,7 @@ class GlobalExceptionHandlerTest {
     void handleApplicationException_returnsProblemDetailWithCorrectStatus() {
         DuplicateResourceException ex = new DuplicateResourceException("Username already exists");
 
-        ProblemDetail result = handler.handleApplicationException(ex, null);
+        ProblemDetail result = handler.handleApplicationException(ex);
 
         assertThat(result.getStatus()).isEqualTo(409);
         assertThat(result.getDetail()).isEqualTo("Username already exists");
@@ -58,7 +58,7 @@ class GlobalExceptionHandlerTest {
     void handleApplicationException_withNotFound_returns404() {
         ResourceNotFoundException ex = new ResourceNotFoundException("User not found");
 
-        ProblemDetail result = handler.handleApplicationException(ex, null);
+        ProblemDetail result = handler.handleApplicationException(ex);
 
         assertThat(result.getStatus()).isEqualTo(404);
         assertThat(result.getDetail()).isEqualTo("User not found");
@@ -216,7 +216,7 @@ class GlobalExceptionHandlerTest {
     void handleUnauthorizedException_returns401() {
         UnauthorizedException ex = new UnauthorizedException("Invalid or expired refresh token");
 
-        ProblemDetail result = handler.handleApplicationException(ex, null);
+        ProblemDetail result = handler.handleApplicationException(ex);
 
         assertThat(result.getStatus()).isEqualTo(401);
         assertThat(result.getDetail()).isEqualTo("Invalid or expired refresh token");

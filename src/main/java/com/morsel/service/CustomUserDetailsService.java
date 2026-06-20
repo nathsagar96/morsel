@@ -34,13 +34,4 @@ public class CustomUserDetailsService implements UserDetailsService {
                     return new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail);
                 });
     }
-
-    @Transactional(readOnly = true)
-    public UserDetails loadUserById(Long id) {
-        log.debug("Loading user by id: {}", id);
-        return userRepository.findById(id).map(UserPrincipal::new).orElseThrow(() -> {
-            log.warn("User not found with id: {}", id);
-            return new UsernameNotFoundException("User not found with id: " + id);
-        });
-    }
 }

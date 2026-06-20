@@ -1,7 +1,6 @@
 package com.morsel.exception;
 
 import com.morsel.constants.ErrorMessages;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +28,7 @@ public class GlobalExceptionHandler {
     private static final String CORRELATION_ID_KEY = "correlationId";
 
     @ExceptionHandler(ApplicationException.class)
-    public ProblemDetail handleApplicationException(ApplicationException ex, HttpServletRequest request) {
+    public ProblemDetail handleApplicationException(ApplicationException ex) {
         log.warn("Application exception [{}]: {}", ex.getStatus(), ex.getMessage());
         return toProblemDetail(ex.getStatus(), ex.getMessage(), ex.getStatus().getReasonPhrase());
     }
@@ -112,7 +111,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException ex) {
         log.debug("Upload size exceeded: {}", ex.getMessage());
         return toProblemDetail(
-                HttpStatus.PAYLOAD_TOO_LARGE, ErrorMessages.PAYLOAD_TOO_LARGE, ErrorMessages.PAYLOAD_TOO_LARGE_TITLE);
+                HttpStatus.CONTENT_TOO_LARGE, ErrorMessages.PAYLOAD_TOO_LARGE, ErrorMessages.PAYLOAD_TOO_LARGE_TITLE);
     }
 
     @ExceptionHandler(Exception.class)

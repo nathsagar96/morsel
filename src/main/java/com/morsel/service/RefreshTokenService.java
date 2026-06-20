@@ -40,7 +40,7 @@ public class RefreshTokenService {
     public void validateAndRotate(String jti, Long userId) {
         if (refreshTokenRepository.markRevokedIfNotRevoked(jti) == 0) {
             log.warn("Refresh token reuse detected for user {} — revoking all tokens", userId);
-            requiresNewTransaction.executeWithoutResult(status -> refreshTokenRepository.revokeAllByUserId(userId));
+            requiresNewTransaction.executeWithoutResult(_ -> refreshTokenRepository.revokeAllByUserId(userId));
             throw new UnauthorizedException("Refresh token has been revoked");
         }
         log.debug("Revoked refresh token jti={}", jti);

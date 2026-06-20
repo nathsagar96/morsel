@@ -8,6 +8,7 @@
 ./mvnw test                    # all tests (Testcontainers spins up postgres:18-alpine)
 ./mvnw test -Dtest=ClassName   # single test class
 ./mvnw spring-boot:run         # auto-starts Docker Compose via spring-boot-docker-compose
+./mvnw spring-boot:run -Dspring-boot.run.profiles=prod  # production profile (needs env vars)
 ./mvnw verify                  # includes spotless:check
 ```
 
@@ -33,15 +34,17 @@ Single-module Maven project under `com.morsel`:
 com.morsel
 ├── Application.java                 # @SpringBootApplication + @ConfigurationPropertiesScan
 ├── config/                          # SecurityConfig, JpaConfig, JwtProperties, StorageProperties (records)
-├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController
+├── constants/                       # ApiPaths, AuthConstants, ErrorMessages, AppPropertyKeys
+├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController, UserController, FavoriteController
 ├── dto/request/                     # SignUpRequest, LoginRequest, CreateRecipeRequest, UpdateRecipeRequest, CommentRequest, RatingRequest (records)
 ├── dto/response/                    # AuthResponse, RecipeResponse, RecipeSummaryResponse, CommentResponse, RatingResponse, UserProfileResponse (records with static of() factory)
 ├── exception/                       # sealed: ApplicationException ← BadRequestException, DuplicateResourceException, ForbiddenException, InvalidFileException, ResourceNotFoundException
+├── filter/                          # CorrelationIdFilter
+├── logging/                         # AuditLogger, PiiSanitizer
 ├── mapper/                          # UserMapper, RecipeMapper, CommentMapper, RatingMapper (@Component)
 ├── model/                           # User, Recipe, Ingredient, Comment, Rating + Role enum
 ├── repository/                      # JpaRepository interfaces
 ├── security/                        # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal (record implements UserDetails)
-├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController, UserController, FavoriteController
 ├── service/                         # UserService, CustomUserDetailsService, RecipeService, CommentService, RatingService, FavoriteService
 ├── specification/                   # RecipeSpecification (JPA Criteria API static factories)
 └── storage/                         # FileStorageService (interface), LocalFileStorageService
@@ -113,16 +116,16 @@ com.morsel
 - Image serving (`GET /api/v1/images/{filename}`) is public (permitAll)
 - Multipart limits: 5MB per file, 10MB per request (`spring.servlet.multipart`)
 
-## Tests (112 total)
+## Tests (110 total)
 
 Four styles, all under `src/test/java/com/morsel/`:
 
-| Style                                 | Used for                                                                               | Key setup                                                                                                                                                                   |
-|---------------------------------------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Plain JUnit 5                         | GlobalExceptionHandler, JwtTokenProvider, UserPrincipal, LocalFileStorageService       | —                                                                                                                                                                           |
-| `@ExtendWith(MockitoExtension.class)` | UserService, RecipeService, CustomUserDetailsService, CommentService, RatingService    | `@Mock`, `@InjectMocks`                                                                                                                                                     |
-| `@DataJpaTest` + Testcontainers       | UserRepository                                                                         | `@AutoConfigureTestDatabase(replace = NONE)`, `@Import(TestcontainersConfiguration.class)`                                                                                  |
-| `@WebMvcTest` + Testcontainers        | AuthController, RecipeController, ImageController, CommentController, RatingController | `excludeAutoConfiguration = {SecurityAutoConfiguration, UserDetailsServiceAutoConfiguration}`, `addFilters = false` + manual `SecurityContextHolder` setup in `@BeforeEach` |
+| Style                                 | Used for                                                                                   | Key setup                                                                                                                                                                   |
+|---------------------------------------|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Plain JUnit 5                         | GlobalExceptionHandler, JwtTokenProvider, UserPrincipal, LocalFileStorageService           | —                                                                                                                                                                           |
+| `@ExtendWith(MockitoExtension.class)` | UserService, RecipeService, CustomUserDetailsService, CommentService, RatingService, FavoriteService, RefreshTokenService, PasswordResetService, AuthService, UserProfileService, EmailServiceImpl | `@Mock`, `@InjectMocks`                                                                                     |
+| `@DataJpaTest` + Testcontainers       | UserRepository, CommentRepository, RatingRepository, RecipeRepository                      | `@AutoConfigureTestDatabase(replace = NONE)`, `@Import(TestcontainersConfiguration.class)`                                                                                  |
+| `@WebMvcTest` + Testcontainers        | AuthController, RecipeController, ImageController, CommentController, RatingController, UserController, FavoriteController | `excludeAutoConfiguration = {SecurityAutoConfiguration, UserDetailsServiceAutoConfiguration}`, `addFilters = false` + manual `SecurityContextHolder` setup in `@BeforeEach` |
 
 - **WebMvcTest auth setup**: Inject a `UsernamePasswordAuthenticationToken` with a `UserPrincipal` into
   `SecurityContextHolder` before each test; clear in `@AfterEach`
@@ -138,6 +141,10 @@ Four styles, all under `src/test/java/com/morsel/`:
 - **Flyway migrations**: `src/main/resources/db/migration/`
 - **Postgres**: `docker compose up -d` (port 5432, user/pass: `morsel`/`secret`, DB: `morsel`) — or just run with Maven,
   `spring-boot-docker-compose` auto-starts it
+- **Logging**: Spring Boot 4 native structured logging (`logging.structured.format.console: ecs`) — no custom Logback
+  config needed; test output is plain text by default
+- **Prod profile**: `application-prod.yaml` requires env vars for DB, JWT, CORS, mail, storage — no defaults; use
+  `-Dspring-boot.run.profiles=prod` to activate
 - `@EnableJpaAuditing` in `JpaConfig` (for `@CreationTimestamp`/`@UpdateTimestamp`)
 - **`@EntityGraph`** is required on any repository method that serves response serialization (avoids N+1 with OSIV
   disabled)

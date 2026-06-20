@@ -4,7 +4,6 @@ import com.morsel.dto.request.RatingRequest;
 import com.morsel.dto.response.RatingResponse;
 import com.morsel.mapper.RatingMapper;
 import com.morsel.model.Rating;
-import com.morsel.model.Recipe;
 import com.morsel.model.User;
 import com.morsel.repository.RatingRepository;
 import com.morsel.repository.RecipeRepository;
@@ -25,7 +24,7 @@ public class RatingService {
 
     @Transactional
     public RatingResponse addOrUpdateRating(Long recipeId, RatingRequest request, User user) {
-        Recipe recipe = recipeService.findRecipeOrThrow(recipeId);
+        recipeService.findRecipeOrThrow(recipeId);
         ratingRepository.upsert(request.score(), user.getId(), recipeId);
         recipeRepository.refreshRatingAggregates(recipeId);
         Rating rating = ratingRepository

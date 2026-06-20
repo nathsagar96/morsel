@@ -76,25 +76,4 @@ class CustomUserDetailsServiceTest {
                 .isInstanceOf(UsernameNotFoundException.class)
                 .hasMessageContaining("unknown");
     }
-
-    @Test
-    @DisplayName("loads user by id when found")
-    void loadUserById_whenFound_returnsUserPrincipal() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
-        UserDetails result = userDetailsService.loadUserById(1L);
-
-        assertThat(result).isInstanceOf(UserPrincipal.class);
-        assertThat(result.getUsername()).isEqualTo("testuser");
-    }
-
-    @Test
-    @DisplayName("throws UsernameNotFoundException when id not found")
-    void loadUserById_whenNotFound_throwsException() {
-        when(userRepository.findById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> userDetailsService.loadUserById(99L))
-                .isInstanceOf(UsernameNotFoundException.class)
-                .hasMessageContaining("99");
-    }
 }

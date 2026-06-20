@@ -29,7 +29,7 @@
     <properties>
         <java.version>25</java.version>
         <jjwt.version>0.12.6</jjwt.version>
-        <spotless.version>3.6.0</spotless.version>
+        <spotless.version>3.7.0</spotless.version>
     </properties>
     <dependencies>
         <dependency>
@@ -85,11 +85,6 @@
             <groupId>com.twelvemonkeys.imageio</groupId>
             <artifactId>imageio-webp</artifactId>
             <version>3.12.0</version>
-        </dependency>
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>8.0</version>
         </dependency>
 
         <dependency>

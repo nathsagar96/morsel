@@ -16,8 +16,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("EmailServiceImpl")
-class EmailServiceImplTest {
+@DisplayName("EmailService")
+class EmailServiceTest {
 
     @Mock
     private JavaMailSender mailSender;
@@ -26,7 +26,7 @@ class EmailServiceImplTest {
     private MimeMessage mimeMessage;
 
     @InjectMocks
-    private EmailServiceImpl emailService;
+    private EmailService emailService;
 
     @BeforeEach
     void setUp() {

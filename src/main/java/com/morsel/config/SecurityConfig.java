@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,14 +40,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(
-                        headers -> headers.contentTypeOptions(contentType -> {})
-                                .frameOptions(frame -> frame.deny())
-                                .xssProtection(xss -> {})
+                        headers -> headers.contentTypeOptions(_ -> {})
+                                .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                                .xssProtection(_ -> {})
                                 .httpStrictTransportSecurity(
                                         hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
                                 .referrerPolicy(referrer ->
                                         referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
-                                .permissionsPolicy(
+                                .permissionsPolicyHeader(
                                         permissions -> permissions.policy(
                                                 "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()")))
                 .authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.POST, ApiPaths.AUTH_WILDCARD)

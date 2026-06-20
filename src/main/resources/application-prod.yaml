@@ -1,0 +1,50 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:900000}
+    refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+    issuer: ${JWT_ISSUER:morsel}
+    audience: ${JWT_AUDIENCE:morsel-api}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+    allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,PATCH,OPTIONS}
+    allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,X-Requested-With}
+  storage:
+    upload-dir: ${APP_UPLOAD_DIR:/var/lib/morsel/uploads}
+  base-url: ${APP_BASE_URL:https://api.morsel.com}
+  lockout:
+    max-failed-attempts: ${LOCKOUT_MAX_FAILED_ATTEMPTS:5}
+    lock-duration-minutes: ${LOCKOUT_LOCK_DURATION_MINUTES:15}
+
+logging:
+  level:
+    root: WARN
+    com:
+      morsel: INFO
+  structured:
+    format:
+      console: ecs
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
