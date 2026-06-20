@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.morsel.exception.ForbiddenException;
+import com.morsel.exception.UnauthorizedException;
 import com.morsel.model.RefreshToken;
 import com.morsel.repository.RefreshTokenRepository;
 import java.time.Instant;
@@ -70,12 +70,12 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    @DisplayName("validateAndRotate throws ForbiddenException when token not found")
-    void validateAndRotate_withUnknownJti_throwsForbidden() {
+    @DisplayName("validateAndRotate throws UnauthorizedException when token not found")
+    void validateAndRotate_withUnknownJti_throwsUnauthorized() {
         when(refreshTokenRepository.findByJti("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> refreshTokenService.validateAndRotate("unknown", USER_ID))
-                .isInstanceOf(ForbiddenException.class);
+                .isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
@@ -100,7 +100,7 @@ class RefreshTokenServiceTest {
         when(refreshTokenRepository.findAllByUserIdAndRevokedFalse(USER_ID)).thenReturn(List.of(anotherToken));
 
         assertThatThrownBy(() -> refreshTokenService.validateAndRotate(JTI, USER_ID))
-                .isInstanceOf(ForbiddenException.class)
+                .isInstanceOf(UnauthorizedException.class)
                 .hasMessageContaining("revoked");
 
         assertThat(anotherToken.isRevoked()).isTrue();

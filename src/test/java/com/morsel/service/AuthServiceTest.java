@@ -21,7 +21,7 @@ import com.morsel.dto.response.AuthResponse;
 import com.morsel.exception.AccountDisabledException;
 import com.morsel.exception.AccountLockedException;
 import com.morsel.exception.DuplicateResourceException;
-import com.morsel.exception.ForbiddenException;
+import com.morsel.exception.UnauthorizedException;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
 import com.morsel.model.User;
@@ -308,17 +308,17 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("throws ForbiddenException for invalid refresh token")
-    void refreshAccessToken_withInvalidToken_throwsForbidden() {
+    @DisplayName("throws UnauthorizedException for invalid refresh token")
+    void refreshAccessToken_withInvalidToken_throwsUnauthorized() {
         RefreshTokenRequest request = new RefreshTokenRequest("invalid");
         when(jwtTokenProvider.validateRefreshToken("invalid")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(UnauthorizedException.class);
     }
 
     @Test
-    @DisplayName("throws ForbiddenException when user not found for refresh token")
-    void refreshAccessToken_withUserNotFound_throwsForbidden() {
+    @DisplayName("throws UnauthorizedException when user not found for refresh token")
+    void refreshAccessToken_withUserNotFound_throwsUnauthorized() {
         RefreshTokenRequest request = new RefreshTokenRequest("valid-token-no-user");
         JwtTokenProvider.RefreshTokenClaims claims = new JwtTokenProvider.RefreshTokenClaims(
                 999L, "jti-999", Instant.now().plusSeconds(3600));
@@ -326,6 +326,6 @@ class AuthServiceTest {
         doNothing().when(refreshTokenService).validateAndRotate("jti-999", 999L);
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(UnauthorizedException.class);
     }
 }

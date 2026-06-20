@@ -29,6 +29,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorrelationIdFilter correlationIdFilter;
     private final CorsProperties corsProperties;
 
     @Bean
@@ -55,6 +56,7 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest()
                         .authenticated())
+                .addFilterBefore(correlationIdFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

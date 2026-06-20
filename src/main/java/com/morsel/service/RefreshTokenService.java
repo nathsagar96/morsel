@@ -1,6 +1,6 @@
 package com.morsel.service;
 
-import com.morsel.exception.ForbiddenException;
+import com.morsel.exception.UnauthorizedException;
 import com.morsel.model.RefreshToken;
 import com.morsel.repository.RefreshTokenRepository;
 import java.time.Instant;
@@ -32,13 +32,13 @@ public class RefreshTokenService {
     public void validateAndRotate(String jti, Long userId) {
         RefreshToken token = refreshTokenRepository.findByJti(jti).orElseThrow(() -> {
             log.warn("Refresh token jti={} not found in store", jti);
-            return new ForbiddenException("Invalid refresh token");
+            return new UnauthorizedException("Invalid refresh token");
         });
 
         if (token.isRevoked()) {
             log.warn("Refresh token reuse detected for user {} — revoking all tokens", userId);
             revokeAllForUser(userId);
-            throw new ForbiddenException("Refresh token has been revoked");
+            throw new UnauthorizedException("Refresh token has been revoked");
         }
 
         token.setRevoked(true);

@@ -9,7 +9,7 @@ import com.morsel.dto.response.AuthResponse;
 import com.morsel.exception.AccountDisabledException;
 import com.morsel.exception.AccountLockedException;
 import com.morsel.exception.DuplicateResourceException;
-import com.morsel.exception.ForbiddenException;
+import com.morsel.exception.UnauthorizedException;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
 import com.morsel.model.User;
@@ -154,14 +154,14 @@ public class AuthService {
                 .validateRefreshToken(request.refreshToken())
                 .orElseThrow(() -> {
                     log.warn("Refresh token validation failed");
-                    return new ForbiddenException("Invalid or expired refresh token");
+                    return new UnauthorizedException("Invalid or expired refresh token");
                 });
 
         refreshTokenService.validateAndRotate(claims.jti(), claims.userId());
 
         User user = userRepository.findById(claims.userId()).orElseThrow(() -> {
             log.warn("User not found for refresh token, userId: {}", claims.userId());
-            return new ForbiddenException("Invalid or expired refresh token");
+            return new UnauthorizedException("Invalid or expired refresh token");
         });
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(

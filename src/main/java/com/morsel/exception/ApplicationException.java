@@ -11,7 +11,8 @@ public abstract sealed class ApplicationException extends RuntimeException
                 DuplicateResourceException,
                 ForbiddenException,
                 InvalidFileException,
-                ResourceNotFoundException {
+                ResourceNotFoundException,
+                UnauthorizedException {
 
     private final HttpStatus status;
 
