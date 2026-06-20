@@ -97,7 +97,7 @@ public class RecipeService {
         return recipeMapper.toResponse(recipe);
     }
 
-    private Recipe findRecipeOrThrow(Long id) {
+    public Recipe findRecipeOrThrow(Long id) {
         return recipeRepository.findWithDetailsById(id).orElseThrow(() -> {
             log.warn("Recipe not found: id={}", id);
             return new ResourceNotFoundException("Recipe not found with id: " + id);

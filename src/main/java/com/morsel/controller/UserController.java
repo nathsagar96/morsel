@@ -4,7 +4,7 @@ import com.morsel.dto.response.RecipeResponse;
 import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.FavoriteService;
-import com.morsel.service.UserService;
+import com.morsel.service.UserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,13 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class UserController {
 
-    private final UserService userService;
+    private final UserProfileService userProfileService;
     private final FavoriteService favoriteService;
 
     @GetMapping("/{username}")
     public UserProfileResponse getProfile(@PathVariable String username) {
         log.debug("Profile request for user: {}", username);
-        return userService.getProfile(username);
+        return userProfileService.getProfile(username);
     }
 
     @GetMapping("/me/favorites")

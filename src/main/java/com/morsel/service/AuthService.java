@@ -4,17 +4,14 @@ import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
-import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.DuplicateResourceException;
 import com.morsel.exception.ForbiddenException;
-import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserService {
+public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -75,7 +72,7 @@ public class UserService {
     }
 
     public AuthResponse refreshAccessToken(RefreshTokenRequest request) {
-        Optional<Long> userId = jwtTokenProvider.getUserIdIfValid(request.refreshToken());
+        var userId = jwtTokenProvider.getUserIdIfValid(request.refreshToken());
         if (userId.isEmpty()) {
             log.warn("Refresh token validation failed");
             throw new ForbiddenException("Invalid or expired refresh token");
@@ -90,15 +87,5 @@ public class UserService {
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
         log.debug("Tokens refreshed for user {}", user.getUsername());
         return userMapper.toAuthResponse(user, newAccessToken, newRefreshToken);
-    }
-
-    @Transactional(readOnly = true)
-    public UserProfileResponse getProfile(String username) {
-        User user = userRepository.findWithRecipesByUsername(username).orElseThrow(() -> {
-            log.warn("User profile not found: {}", username);
-            return new ResourceNotFoundException("User not found: " + username);
-        });
-        log.debug("Profile fetched for user: {}", username);
-        return userMapper.toProfileResponse(user);
     }
 }

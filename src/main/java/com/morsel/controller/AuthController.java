@@ -4,7 +4,7 @@ import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
-import com.morsel.service.UserService;
+import com.morsel.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,24 +21,24 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class AuthController {
 
-    private final UserService userService;
+    private final AuthService authService;
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
     public AuthResponse signup(@Valid @RequestBody SignUpRequest request) {
         log.debug("Signup request for user: {}", request.username());
-        return userService.register(request);
+        return authService.register(request);
     }
 
     @PostMapping("/signin")
     public AuthResponse signin(@Valid @RequestBody LoginRequest request) {
         log.debug("Signin request for user: {}", request.usernameOrEmail());
-        return userService.authenticate(request);
+        return authService.authenticate(request);
     }
 
     @PostMapping("/refresh")
     public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
         log.debug("Refresh token request received");
-        return userService.refreshAccessToken(request);
+        return authService.refreshAccessToken(request);
     }
 }

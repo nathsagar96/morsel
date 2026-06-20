@@ -24,7 +24,19 @@ public class RecipeMapper {
     }
 
     public RecipeResponse toResponse(Recipe recipe) {
-        return RecipeResponse.of(recipe);
+        return new RecipeResponse(
+                recipe.getId(),
+                recipe.getTitle(),
+                recipe.getDescription(),
+                recipe.getInstructions(),
+                recipe.getImageUrl(),
+                recipe.getAuthor().getId(),
+                recipe.getAuthor().getUsername(),
+                recipe.getIngredients().stream().map(i -> i.getId()).toList(),
+                recipe.getAverageRating(),
+                recipe.getRatingCount(),
+                recipe.getCreatedAt(),
+                recipe.getUpdatedAt());
     }
 
     public void updateEntity(Recipe recipe, UpdateRecipeRequest request, List<Ingredient> ingredients) {

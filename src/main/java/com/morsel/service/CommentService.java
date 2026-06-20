@@ -24,10 +24,11 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final RecipeRepository recipeRepository;
     private final CommentMapper commentMapper;
+    private final RecipeService recipeService;
 
     @Transactional
     public CommentResponse addComment(Long recipeId, CommentRequest request, User user) {
-        Recipe recipe = findRecipeOrThrow(recipeId);
+        Recipe recipe = recipeService.findRecipeOrThrow(recipeId);
         Comment comment = commentMapper.toEntity(request, recipe, user);
         comment = commentRepository.save(comment);
         log.info("Comment added: id={}, recipeId={}, userId={}", comment.getId(), recipeId, user.getId());
@@ -42,12 +43,5 @@ public class CommentService {
         return commentRepository
                 .findByRecipeIdOrderByCreatedAtDesc(recipeId, pageable)
                 .map(commentMapper::toResponse);
-    }
-
-    private Recipe findRecipeOrThrow(Long id) {
-        return recipeRepository.findById(id).orElseThrow(() -> {
-            log.warn("Recipe not found: id={}", id);
-            return new ResourceNotFoundException("Recipe not found with id: " + id);
-        });
     }
 }

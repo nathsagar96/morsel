@@ -2,8 +2,6 @@ package com.morsel.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,7 +14,6 @@ import com.morsel.model.Recipe;
 import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.RatingRepository;
-import com.morsel.repository.RecipeRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,10 +31,10 @@ class RatingServiceTest {
     private RatingRepository ratingRepository;
 
     @Mock
-    private RecipeRepository recipeRepository;
+    private RatingMapper ratingMapper;
 
     @Mock
-    private RatingMapper ratingMapper;
+    private RecipeService recipeService;
 
     @InjectMocks
     private RatingService ratingService;
@@ -58,7 +55,7 @@ class RatingServiceTest {
     @Test
     @DisplayName("creates new rating and updates recipe averages")
     void addOrUpdateRating_newRating_createsAndUpdatesAverages() {
-        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
+        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
         when(ratingRepository.findByUserIdAndRecipeId(1L, 100L)).thenReturn(Optional.of(rating));
         when(ratingRepository.findAverageScoreByRecipeId(100L)).thenReturn(Optional.of(4.0));
         when(ratingRepository.findCountByRecipeId(100L)).thenReturn(1);
@@ -79,7 +76,7 @@ class RatingServiceTest {
                 Rating.builder().id(10L).score(5).user(user).recipe(recipe).build();
         RatingRequest updateRequest = new RatingRequest(5);
 
-        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
+        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
         when(ratingRepository.findByUserIdAndRecipeId(1L, 100L)).thenReturn(Optional.of(existingRating));
         when(ratingRepository.findAverageScoreByRecipeId(100L)).thenReturn(Optional.of(4.0));
         when(ratingRepository.findCountByRecipeId(100L)).thenReturn(2);
@@ -90,13 +87,14 @@ class RatingServiceTest {
         assertThat(recipe.getAverageRating()).isEqualTo(4.0);
         assertThat(recipe.getRatingCount()).isEqualTo(2);
         verify(ratingRepository).upsert(5, 1L, 100L);
-        verify(ratingMapper, never()).toEntity(any(), any(), any());
+        verify(ratingMapper).toResponse(existingRating);
     }
 
     @Test
     @DisplayName("throws ResourceNotFoundException when recipe does not exist")
     void addOrUpdateRating_withNonExistentRecipe_throwsException() {
-        when(recipeRepository.findById(999L)).thenReturn(Optional.empty());
+        when(recipeService.findRecipeOrThrow(999L))
+                .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
 
         assertThatThrownBy(() -> ratingService.addOrUpdateRating(999L, request, user))
                 .isInstanceOf(ResourceNotFoundException.class)

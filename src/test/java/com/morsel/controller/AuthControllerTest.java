@@ -11,8 +11,8 @@ import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
 import com.morsel.security.JwtTokenProvider;
+import com.morsel.service.AuthService;
 import com.morsel.service.CustomUserDetailsService;
-import com.morsel.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ class AuthControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private UserService userService;
+    private AuthService authService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -46,7 +46,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/signup returns 201 with auth response for valid request")
     void signup_withValidRequest_returns201AndAuthResponse() throws Exception {
-        when(userService.register(any(SignUpRequest.class)))
+        when(authService.register(any(SignUpRequest.class)))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "testuser", "test@example.com"));
 
         mockMvc.perform(post("/api/v1/auth/signup")
@@ -107,7 +107,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/signin returns 200 with token for valid credentials")
     void signin_withValidRequest_returns200AndToken() throws Exception {
-        when(userService.authenticate(any(LoginRequest.class)))
+        when(authService.authenticate(any(LoginRequest.class)))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "testuser", "test@example.com"));
 
         mockMvc.perform(post("/api/v1/auth/signin")
@@ -155,7 +155,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("POST /api/v1/auth/refresh returns 200 with new tokens for valid refresh token")
     void refresh_withValidToken_returns200AndNewTokens() throws Exception {
-        when(userService.refreshAccessToken(any(RefreshTokenRequest.class)))
+        when(authService.refreshAccessToken(any(RefreshTokenRequest.class)))
                 .thenReturn(AuthResponse.of("new-access", "new-refresh", 1L, "testuser", "test@example.com"));
 
         mockMvc.perform(post("/api/v1/auth/refresh")

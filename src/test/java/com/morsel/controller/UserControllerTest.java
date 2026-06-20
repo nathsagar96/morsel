@@ -14,7 +14,7 @@ import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.CustomUserDetailsService;
 import com.morsel.service.FavoriteService;
-import com.morsel.service.UserService;
+import com.morsel.service.UserProfileService;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class UserControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private UserService userService;
+    private UserProfileService userProfileService;
 
     @MockitoBean
     private FavoriteService favoriteService;
@@ -73,7 +73,7 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/v1/users/{username} returns profile when found")
     void getProfile_withExistingUsername_returns200() throws Exception {
-        when(userService.getProfile("testuser")).thenReturn(profileResponse);
+        when(userProfileService.getProfile("testuser")).thenReturn(profileResponse);
 
         mockMvc.perform(get("/api/v1/users/testuser"))
                 .andExpect(status().isOk())
@@ -84,7 +84,8 @@ class UserControllerTest {
     @Test
     @DisplayName("GET /api/v1/users/{username} returns 404 when not found")
     void getProfile_withNonExistentUser_returns404() throws Exception {
-        when(userService.getProfile("unknown")).thenThrow(new ResourceNotFoundException("User not found: unknown"));
+        when(userProfileService.getProfile("unknown"))
+                .thenThrow(new ResourceNotFoundException("User not found: unknown"));
 
         mockMvc.perform(get("/api/v1/users/unknown")).andExpect(status().isNotFound());
     }

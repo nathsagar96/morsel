@@ -35,8 +35,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UserService")
-class UserServiceTest {
+@DisplayName("AuthService")
+class AuthServiceTest {
 
     @Mock
     private UserRepository userRepository;
@@ -54,7 +54,7 @@ class UserServiceTest {
     private UserMapper userMapper;
 
     @InjectMocks
-    private UserService userService;
+    private AuthService authService;
 
     private SignUpRequest signUpRequest;
     private LoginRequest loginRequest;
@@ -86,7 +86,7 @@ class UserServiceTest {
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "newuser", "new@example.com"));
 
-        AuthResponse response = userService.register(signUpRequest);
+        AuthResponse response = authService.register(signUpRequest);
 
         assertThat(response.token()).isEqualTo("test-token");
         assertThat(response.refreshToken()).isEqualTo("test-refresh");
@@ -100,7 +100,7 @@ class UserServiceTest {
     void register_withDuplicateUsername_throwsException() {
         when(userRepository.existsByUsername("newuser")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.register(signUpRequest))
+        assertThatThrownBy(() -> authService.register(signUpRequest))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Username");
 
@@ -113,7 +113,7 @@ class UserServiceTest {
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("new@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.register(signUpRequest))
+        assertThatThrownBy(() -> authService.register(signUpRequest))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("Email");
 
@@ -129,7 +129,7 @@ class UserServiceTest {
         when(userMapper.toEntity(signUpRequest, "encoded-password", Role.USER)).thenReturn(user);
         when(userRepository.save(user)).thenThrow(DataIntegrityViolationException.class);
 
-        assertThatThrownBy(() -> userService.register(signUpRequest)).isInstanceOf(DuplicateResourceException.class);
+        assertThatThrownBy(() -> authService.register(signUpRequest)).isInstanceOf(DuplicateResourceException.class);
     }
 
     @Test
@@ -145,7 +145,7 @@ class UserServiceTest {
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "newuser", "new@example.com"));
 
-        AuthResponse response = userService.authenticate(loginRequest);
+        AuthResponse response = authService.authenticate(loginRequest);
 
         assertThat(response.token()).isEqualTo("test-token");
         assertThat(response.refreshToken()).isEqualTo("test-refresh");
@@ -164,7 +164,7 @@ class UserServiceTest {
         when(userMapper.toAuthResponse(user, "new-access-token", "new-refresh-token"))
                 .thenReturn(AuthResponse.of("new-access-token", "new-refresh-token", 1L, "newuser", "new@example.com"));
 
-        AuthResponse response = userService.refreshAccessToken(request);
+        AuthResponse response = authService.refreshAccessToken(request);
 
         assertThat(response.token()).isEqualTo("new-access-token");
         assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
@@ -176,7 +176,7 @@ class UserServiceTest {
         RefreshTokenRequest request = new RefreshTokenRequest("invalid");
         when(jwtTokenProvider.getUserIdIfValid("invalid")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
     }
 
     @Test
@@ -186,6 +186,6 @@ class UserServiceTest {
         when(jwtTokenProvider.getUserIdIfValid("valid-token-no-user")).thenReturn(Optional.of(999L));
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
+        assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
     }
 }

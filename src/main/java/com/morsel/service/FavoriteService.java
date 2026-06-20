@@ -4,7 +4,6 @@ import com.morsel.dto.response.RecipeResponse;
 import com.morsel.exception.DuplicateResourceException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.RecipeMapper;
-import com.morsel.model.Recipe;
 import com.morsel.model.User;
 import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
@@ -23,11 +22,12 @@ public class FavoriteService {
     private final UserRepository userRepository;
     private final RecipeRepository recipeRepository;
     private final RecipeMapper recipeMapper;
+    private final RecipeService recipeService;
 
     @Transactional
     public void favorite(Long recipeId, User currentUser) {
         User user = findUserWithFavorites(currentUser.getId());
-        Recipe recipe = findRecipeOrThrow(recipeId);
+        var recipe = recipeService.findRecipeOrThrow(recipeId);
 
         boolean alreadyFavorited =
                 user.getFavorites().stream().anyMatch(r -> r.getId().equals(recipeId));
@@ -65,13 +65,6 @@ public class FavoriteService {
         return userRepository.findWithFavoritesById(id).orElseThrow(() -> {
             log.warn("User not found: id={}", id);
             return new ResourceNotFoundException("User not found with id: " + id);
-        });
-    }
-
-    private Recipe findRecipeOrThrow(Long id) {
-        return recipeRepository.findById(id).orElseThrow(() -> {
-            log.warn("Recipe not found: id={}", id);
-            return new ResourceNotFoundException("Recipe not found with id: " + id);
         });
     }
 }

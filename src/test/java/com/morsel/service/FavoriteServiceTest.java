@@ -43,6 +43,9 @@ class FavoriteServiceTest {
     @Mock
     private RecipeMapper recipeMapper;
 
+    @Mock
+    private RecipeService recipeService;
+
     @InjectMocks
     private FavoriteService favoriteService;
 
@@ -66,7 +69,7 @@ class FavoriteServiceTest {
     @DisplayName("adds recipe to favorites")
     void favorite_withValidIds_addsToFavorites() {
         when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
-        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
+        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
 
         favoriteService.favorite(100L, user);
 
@@ -78,7 +81,7 @@ class FavoriteServiceTest {
     void favorite_withAlreadyFavorited_throwsException() {
         user.getFavorites().add(recipe);
         when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
-        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
+        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
 
         assertThatThrownBy(() -> favoriteService.favorite(100L, user))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -102,7 +105,8 @@ class FavoriteServiceTest {
     @DisplayName("throws ResourceNotFoundException when recipe not found")
     void favorite_withNonExistentRecipe_throwsException() {
         when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
-        when(recipeRepository.findById(999L)).thenReturn(Optional.empty());
+        when(recipeService.findRecipeOrThrow(999L))
+                .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
 
         assertThatThrownBy(() -> favoriteService.favorite(999L, user))
                 .isInstanceOf(ResourceNotFoundException.class)

@@ -59,6 +59,7 @@ class RecipeServiceTest {
     private User admin;
     private User otherUser;
     private Recipe recipe;
+    private RecipeResponse recipeResponse;
     private CreateRecipeRequest createRequest;
     private UpdateRecipeRequest updateRequest;
     private Ingredient ingredient;
@@ -77,6 +78,19 @@ class RecipeServiceTest {
                 .author(author)
                 .ingredients(List.of(ingredient))
                 .build();
+        recipeResponse = new RecipeResponse(
+                100L,
+                "Original Title",
+                "Original desc",
+                "Steps",
+                null,
+                1L,
+                "author",
+                List.of(10L),
+                null,
+                null,
+                null,
+                null);
         createRequest = new CreateRecipeRequest("New Title", "New desc", "New steps", null, List.of(10L));
         updateRequest = new UpdateRecipeRequest("Updated", "Updated desc", "Updated steps", null, List.of(10L));
     }
@@ -87,7 +101,7 @@ class RecipeServiceTest {
         when(ingredientRepository.findAllById(List.of(10L))).thenReturn(List.of(ingredient));
         when(recipeMapper.toEntity(createRequest, author, List.of(ingredient))).thenReturn(recipe);
         when(recipeRepository.save(recipe)).thenReturn(recipe);
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         RecipeResponse response = recipeService.create(createRequest, author);
 
@@ -110,7 +124,9 @@ class RecipeServiceTest {
 
         when(recipeMapper.toEntity(noIngredientRequest, author, List.of())).thenReturn(noIngredientRecipe);
         when(recipeRepository.save(noIngredientRecipe)).thenReturn(noIngredientRecipe);
-        when(recipeMapper.toResponse(noIngredientRecipe)).thenReturn(RecipeResponse.of(noIngredientRecipe));
+        when(recipeMapper.toResponse(noIngredientRecipe))
+                .thenReturn(new RecipeResponse(
+                        101L, "No Ing", "Desc", "Steps", null, 1L, "author", List.of(), null, null, null, null));
 
         RecipeResponse response = recipeService.create(noIngredientRequest, author);
 
@@ -124,7 +140,7 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         Page<RecipeResponse> result = recipeService.findAll(pageable);
 
@@ -138,7 +154,7 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         Page<RecipeResponse> result = recipeService.findAll("Original", null, pageable);
 
@@ -152,7 +168,7 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         Page<RecipeResponse> result = recipeService.findAll(null, List.of(10L), pageable);
 
@@ -165,7 +181,7 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         Page<RecipeResponse> result = recipeService.findAll("Original", List.of(10L), pageable);
 
@@ -177,7 +193,7 @@ class RecipeServiceTest {
     @DisplayName("returns recipe by id")
     void findById_withExistingId_returnsRecipeResponse() {
         when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         RecipeResponse response = recipeService.findById(100L);
 
@@ -212,7 +228,7 @@ class RecipeServiceTest {
     void update_byOwner_updatesAndReturnsResponse() {
         when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
         when(ingredientRepository.findAllById(List.of(10L))).thenReturn(List.of(ingredient));
-        when(recipeMapper.toResponse(recipe)).thenReturn(RecipeResponse.of(recipe));
+        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
 
         RecipeResponse response = recipeService.update(100L, updateRequest, author);
 
