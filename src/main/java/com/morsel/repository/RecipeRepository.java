@@ -34,11 +34,10 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecif
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
-                UPDATE recipes
-                SET average_rating = (SELECT COALESCE(AVG(score), 0.0) FROM ratings WHERE recipe_id = :recipeId),
-                    rating_count = (SELECT COUNT(*) FROM ratings WHERE recipe_id = :recipeId),
-                    version = version + 1
-                WHERE id = :recipeId
-                """, nativeQuery = true)
+                    UPDATE recipes
+                    SET average_rating = (SELECT COALESCE(AVG(score), 0.0) FROM ratings WHERE recipe_id = :recipeId),
+                        rating_count = (SELECT COUNT(*) FROM ratings WHERE recipe_id = :recipeId)
+                    WHERE id = :recipeId
+                    """, nativeQuery = true)
     void refreshRatingAggregates(@Param("recipeId") Long recipeId);
 }

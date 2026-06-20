@@ -26,30 +26,22 @@ public class FavoriteService {
 
     @Transactional
     public void favorite(Long recipeId, User currentUser) {
-        User user = findUserWithFavorites(currentUser.getId());
-        var recipe = recipeService.findRecipeOrThrow(recipeId);
-
-        boolean alreadyFavorited =
-                user.getFavorites().stream().anyMatch(r -> r.getId().equals(recipeId));
-        if (alreadyFavorited) {
+        recipeService.findRecipeOrThrow(recipeId);
+        int inserted = userRepository.addFavorite(currentUser.getId(), recipeId);
+        if (inserted == 0) {
             log.warn("Recipe {} already in favorites for user {}", recipeId, currentUser.getId());
             throw new DuplicateResourceException("Recipe already in favorites");
         }
-
-        user.getFavorites().add(recipe);
         log.info("Recipe {} added to favorites for user {}", recipeId, currentUser.getId());
     }
 
     @Transactional
     public void unfavorite(Long recipeId, User currentUser) {
-        User user = findUserWithFavorites(currentUser.getId());
-
-        boolean removed = user.getFavorites().removeIf(r -> r.getId().equals(recipeId));
-        if (!removed) {
+        int deleted = userRepository.removeFavorite(currentUser.getId(), recipeId);
+        if (deleted == 0) {
             log.warn("Recipe {} not in favorites for user {}", recipeId, currentUser.getId());
             throw new ResourceNotFoundException("Recipe not in favorites");
         }
-
         log.info("Recipe {} removed from favorites for user {}", recipeId, currentUser.getId());
     }
 
@@ -59,12 +51,5 @@ public class FavoriteService {
         return recipeRepository
                 .findByFavoritedBy_Id(currentUser.getId(), pageable)
                 .map(recipeMapper::toResponse);
-    }
-
-    private User findUserWithFavorites(Long id) {
-        return userRepository.findWithFavoritesById(id).orElseThrow(() -> {
-            log.warn("User not found: id={}", id);
-            return new ResourceNotFoundException("User not found with id: " + id);
-        });
     }
 }

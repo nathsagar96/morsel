@@ -17,9 +17,7 @@ import com.morsel.model.User;
 import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,55 +54,35 @@ class FavoriteServiceTest {
     @BeforeEach
     void setUp() {
         now = Instant.now();
-        user = User.builder()
-                .id(1L)
-                .username("testuser")
-                .role(Role.USER)
-                .favorites(new ArrayList<>())
-                .build();
+        user = User.builder().id(1L).username("testuser").role(Role.USER).build();
         recipe = Recipe.builder().id(100L).title("Test Recipe").author(user).build();
     }
 
     @Test
     @DisplayName("adds recipe to favorites")
     void favorite_withValidIds_addsToFavorites() {
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
         when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
+        when(userRepository.addFavorite(1L, 100L)).thenReturn(1);
 
         favoriteService.favorite(100L, user);
 
-        assertThat(user.getFavorites()).containsExactly(recipe);
+        verify(userRepository).addFavorite(1L, 100L);
     }
 
     @Test
     @DisplayName("throws DuplicateResourceException when already favorited")
     void favorite_withAlreadyFavorited_throwsException() {
-        user.getFavorites().add(recipe);
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
         when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
+        when(userRepository.addFavorite(1L, 100L)).thenReturn(0);
 
         assertThatThrownBy(() -> favoriteService.favorite(100L, user))
                 .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already in favorites");
-
-        assertThat(user.getFavorites()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("throws ResourceNotFoundException when user not found")
-    void favorite_withNonExistentUser_throwsException() {
-        when(userRepository.findWithFavoritesById(99L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() ->
-                        favoriteService.favorite(100L, User.builder().id(99L).build()))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("User not found");
     }
 
     @Test
     @DisplayName("throws ResourceNotFoundException when recipe not found")
     void favorite_withNonExistentRecipe_throwsException() {
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
         when(recipeService.findRecipeOrThrow(999L))
                 .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
 
@@ -116,18 +94,17 @@ class FavoriteServiceTest {
     @Test
     @DisplayName("removes recipe from favorites")
     void unfavorite_withExistingFavorite_removesFromFavorites() {
-        user.getFavorites().add(recipe);
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.removeFavorite(1L, 100L)).thenReturn(1);
 
         favoriteService.unfavorite(100L, user);
 
-        assertThat(user.getFavorites()).isEmpty();
+        verify(userRepository).removeFavorite(1L, 100L);
     }
 
     @Test
     @DisplayName("throws ResourceNotFoundException when unfavoriting non-favorited recipe")
     void unfavorite_withNonFavorited_throwsException() {
-        when(userRepository.findWithFavoritesById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.removeFavorite(1L, 100L)).thenReturn(0);
 
         assertThatThrownBy(() -> favoriteService.unfavorite(100L, user))
                 .isInstanceOf(ResourceNotFoundException.class)
