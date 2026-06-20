@@ -30,6 +30,8 @@ app:
     secret: ${JWT_SECRET:SBaL2tluRm6kW29kzJ+RboD4PFZr9pRWI+tLg1SvqGM=}
     expiration-ms: ${JWT_EXPIRATION_MS:900000}
     refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
+    issuer: ${JWT_ISSUER:morsel}
+    audience: ${JWT_AUDIENCE:morsel-api}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
     allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,PATCH,OPTIONS}

@@ -3,11 +3,14 @@ package com.morsel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.morsel.config.JwtProperties;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
@@ -20,6 +23,7 @@ import com.morsel.model.User;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,6 +57,12 @@ class AuthServiceTest {
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private JwtProperties jwtProperties;
+
     @InjectMocks
     private AuthService authService;
 
@@ -76,13 +86,14 @@ class AuthServiceTest {
     @Test
     @DisplayName("registers user and returns auth response with token")
     void register_withValidRequest_returnsAuthResponse() {
+        when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encoded-password");
         when(userMapper.toEntity(signUpRequest, "encoded-password", Role.USER)).thenReturn(user);
         when(userRepository.save(user)).thenReturn(user);
         when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
-        when(jwtTokenProvider.generateRefreshToken(1L)).thenReturn("test-refresh");
+        when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "newuser", "new@example.com"));
 
@@ -93,6 +104,7 @@ class AuthServiceTest {
         assertThat(response.username()).isEqualTo("newuser");
         assertThat(response.email()).isEqualTo("new@example.com");
         verify(userRepository).save(user);
+        verify(refreshTokenService).create(eq(1L), any(String.class), any(Instant.class));
     }
 
     @Test
@@ -135,13 +147,14 @@ class AuthServiceTest {
     @Test
     @DisplayName("authenticates user and returns auth response with token")
     void authenticate_withValidCredentials_returnsAuthResponse() {
+        when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
         Authentication authentication = mock(Authentication.class);
         UserPrincipal userPrincipal = new UserPrincipal(user);
         when(authenticationManager.authenticate(new UsernamePasswordAuthenticationToken("testuser", "password")))
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(userPrincipal);
         when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
-        when(jwtTokenProvider.generateRefreshToken(1L)).thenReturn("test-refresh");
+        when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "newuser", "new@example.com"));
 
@@ -151,16 +164,20 @@ class AuthServiceTest {
         assertThat(response.refreshToken()).isEqualTo("test-refresh");
         assertThat(response.username()).isEqualTo("newuser");
         verify(authenticationManager).authenticate(any());
+        verify(refreshTokenService).create(eq(1L), any(String.class), any(Instant.class));
     }
 
     @Test
     @DisplayName("refreshes access token with valid refresh token")
     void refreshAccessToken_withValidToken_returnsNewTokens() {
+        when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
         RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
-        when(jwtTokenProvider.getUserIdIfValid("valid-refresh-token")).thenReturn(Optional.of(1L));
+        JwtTokenProvider.RefreshTokenClaims claims = new JwtTokenProvider.RefreshTokenClaims(
+                1L, "jti-old", Instant.now().plusSeconds(3600));
+        when(jwtTokenProvider.validateRefreshToken("valid-refresh-token")).thenReturn(Optional.of(claims));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("new-access-token");
-        when(jwtTokenProvider.generateRefreshToken(1L)).thenReturn("new-refresh-token");
+        when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("new-refresh-token");
         when(userMapper.toAuthResponse(user, "new-access-token", "new-refresh-token"))
                 .thenReturn(AuthResponse.of("new-access-token", "new-refresh-token", 1L, "newuser", "new@example.com"));
 
@@ -168,13 +185,15 @@ class AuthServiceTest {
 
         assertThat(response.token()).isEqualTo("new-access-token");
         assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
+        verify(refreshTokenService).validateAndRotate("jti-old", 1L);
+        verify(refreshTokenService).create(eq(1L), any(String.class), any(Instant.class));
     }
 
     @Test
     @DisplayName("throws ForbiddenException for invalid refresh token")
     void refreshAccessToken_withInvalidToken_throwsForbidden() {
         RefreshTokenRequest request = new RefreshTokenRequest("invalid");
-        when(jwtTokenProvider.getUserIdIfValid("invalid")).thenReturn(Optional.empty());
+        when(jwtTokenProvider.validateRefreshToken("invalid")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);
     }
@@ -183,7 +202,10 @@ class AuthServiceTest {
     @DisplayName("throws ForbiddenException when user not found for refresh token")
     void refreshAccessToken_withUserNotFound_throwsForbidden() {
         RefreshTokenRequest request = new RefreshTokenRequest("valid-token-no-user");
-        when(jwtTokenProvider.getUserIdIfValid("valid-token-no-user")).thenReturn(Optional.of(999L));
+        JwtTokenProvider.RefreshTokenClaims claims = new JwtTokenProvider.RefreshTokenClaims(
+                999L, "jti-999", Instant.now().plusSeconds(3600));
+        when(jwtTokenProvider.validateRefreshToken("valid-token-no-user")).thenReturn(Optional.of(claims));
+        doNothing().when(refreshTokenService).validateAndRotate("jti-999", 999L);
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.refreshAccessToken(request)).isInstanceOf(ForbiddenException.class);

@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (token == null) {
                 log.trace("No JWT token found in request");
             } else {
-                Optional<Long> userId = jwtTokenProvider.getUserIdIfValid(token);
+                Optional<Long> userId = jwtTokenProvider.validateAccessToken(token);
                 if (userId.isPresent()) {
                     UserDetails userDetails = userDetailsService.loadUserById(userId.get());
 

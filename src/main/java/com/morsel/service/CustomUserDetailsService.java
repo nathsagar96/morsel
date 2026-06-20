@@ -27,7 +27,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .or(() -> userRepository.findByEmail(usernameOrEmail))
                 .map(UserPrincipal::new)
                 .orElseThrow(() -> {
-                    log.warn("User not found with username or email: {}", usernameOrEmail);
+                    log.debug("User not found with username or email: {}", usernameOrEmail);
                     return new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail);
                 });
     }

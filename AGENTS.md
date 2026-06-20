@@ -105,7 +105,10 @@ com.morsel
 
 - Interface `FileStorageService` with `store(MultipartFile)` and `load(String filename)` methods
 - `LocalFileStorageService` saves to configurable directory (`app.storage.upload-dir`, default `uploads/`)
-- Allowed extensions: jpg, jpeg, png, GIF, webp, svg (validated server-side)
+- Allowed extensions: jpg, jpeg, png, gif, webp (validated server-side)
+- SVG is rejected (XSS risk)
+- Upload flow: magic-byte check → `ImageIO` decode → re-encode (strips metadata, JPEG quality 0.70)
+- Animated GIFs are flattened to a single frame (security trade-off)
 - Filenames are UUIDs with original extension; returned URL path is `/api/v1/images/{uuid}.{ext}`
 - Image serving (`GET /api/v1/images/{filename}`) is public (permitAll)
 - Multipart limits: 5MB per file, 10MB per request (`spring.servlet.multipart`)
