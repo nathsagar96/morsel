@@ -1,166 +1,57 @@
 # Morsel — Spring Boot 4.1.0 / Java 25
 
-## Commands
+## Key Commands
 
-```bash
-./mvnw spotless:apply          # format with Palantir JavaFormat (run before committing)
-./mvnw spotless:check          # verify formatting in CI
-./mvnw test                    # all tests (Testcontainers spins up postgres:18-alpine)
-./mvnw test -Dtest=ClassName   # single test class
-./mvnw spring-boot:run         # auto-starts Docker Compose via spring-boot-docker-compose
-./mvnw spring-boot:run -Dspring-boot.run.profiles=prod  # production profile (needs env vars)
-./mvnw verify                  # includes spotless:check
-```
+- `./mvnw test` - Run all tests (uses Testcontainers with postgres:18-alpine)
+- `./mvnw test -Dtest=ClassName` - Run a single test class
+- `./mvnw spotless:apply` - Format code with Palantir JavaFormat (run before committing)
+- `./mvnw spotless:check` - Verify formatting in CI
+- `./mvnw spring-boot:run` - Start dev server with Docker Compose auto-start
+- `./mvnw spring-boot:run -Dspring-boot.run.profiles=prod` - Production profile (requires env vars)
 
-## Stack
+## Architecture Overview
 
-| Concern       | Choice                                            |
-|---------------|---------------------------------------------------|
-| Web           | Spring Web MVC                                    |
-| DB            | PostgreSQL + Flyway + Spring Data JPA             |
-| Security      | Spring Security + JWT (jjwt 0.12.6, HMAC-SHA)     |
-| Validation    | `@Valid` + `jakarta.validation`                   |
-| Observability | Actuator + Micrometer Prometheus                  |
-| File Storage  | Local filesystem (interface `FileStorageService`) |
-| Format        | Spotless + Palantir JavaFormat                    |
-| Codegen       | Lombok + `spring-boot-configuration-processor`    |
-| Tests         | Testcontainers, MockMvc, Mockito                  |
+Single-module Maven project with 16 API endpoints. Key patterns:
 
-## Architecture
+- **EntityGraph required** on all repository methods serving responses (avoids N+1 with OSIV disabled)
+- **Specification.where(null)` ambiguous** in Spring Data JPA 3.x - use `(root, query, cb) -> cb.conjunction()`
+- **RecipeSpecification** escapes LIKE wildcards with `!` character
+- **Rating upsert** uses native PostgreSQL `INSERT ... ON CONFLICT DO UPDATE` for atomic one-rating-per-user
+- **List recipes** uses `RecipeSummaryResponse` (excludes `instructions`); sort fields: `{id, title, averageRating, createdAt, updatedAt}`
 
-Single-module Maven project under `com.morsel`:
+## Testing Quirks
 
-```
-com.morsel
-├── Application.java                 # @SpringBootApplication + @ConfigurationPropertiesScan
-├── config/                          # SecurityConfig, JpaConfig, JwtProperties, StorageProperties (records)
-├── constants/                       # ApiPaths, AuthConstants, ErrorMessages, AppPropertyKeys
-├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController, UserController, FavoriteController
-├── dto/request/                     # SignUpRequest, LoginRequest, CreateRecipeRequest, UpdateRecipeRequest, CommentRequest, RatingRequest (records)
-├── dto/response/                    # AuthResponse, RecipeResponse, RecipeSummaryResponse, CommentResponse, RatingResponse, UserProfileResponse (records with static of() factory)
-├── exception/                       # sealed: ApplicationException ← BadRequestException, DuplicateResourceException, ForbiddenException, InvalidFileException, ResourceNotFoundException
-├── filter/                          # CorrelationIdFilter
-├── logging/                         # AuditLogger, PiiSanitizer
-├── mapper/                          # UserMapper, RecipeMapper, CommentMapper, RatingMapper (@Component)
-├── model/                           # User, Recipe, Ingredient, Comment, Rating + Role enum
-├── repository/                      # JpaRepository interfaces
-├── security/                        # JwtTokenProvider, JwtAuthenticationFilter, UserPrincipal (record implements UserDetails)
-├── service/                         # UserService, CustomUserDetailsService, RecipeService, CommentService, RatingService, FavoriteService
-├── specification/                   # RecipeSpecification (JPA Criteria API static factories)
-└── storage/                         # FileStorageService (interface), LocalFileStorageService
-```
+Four test styles under `src/test/java/com/morsel/`:
 
-**API endpoints** (16 total):
+- **WebMvcTest**: Requires manual `SecurityContextHolder` setup in `@BeforeEach` and cleanup in `@AfterEach`
+- **DataJpaTest**: Uses Testcontainers with PostgreSQL (no H2 allowed)
+- **MockitoExtension**: For service layer tests
+- **Plain JUnit 5**: For exception handlers, JWT providers, etc.
 
-| Action                   | Path                                       | Auth          | Query params                                         |
-|--------------------------|--------------------------------------------|---------------|------------------------------------------------------|
-| Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     | —                                                    |
-| Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     | —                                                    |
-| Create recipe            | `POST /api/v1/recipes`                     | authenticated | —                                                    |
-| List recipes (paginated) | `GET /api/v1/recipes`                      | permitAll     | `keyword`, `ingredients` (comma-separated), sort, page, size |
-| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | permitAll     | —                                                    |
-| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   | —                                                    |
-| Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   | —                                                    |
-| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    | —                                                    |
-| Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated | —                                                    |
-| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | permitAll     | —                                                    |
-| Upsert my rating         | `PUT /api/v1/recipes/{recipeId}/ratings/me`| authenticated | —                                                    |
-| Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     | —                                                    |
-| Add favorite             | `POST /api/v1/recipes/{id}/favorite`       | authenticated | —                                                    |
-| Remove favorite          | `DELETE /api/v1/recipes/{id}/favorite`     | authenticated | —                                                    |
-| Get my favorites         | `GET /api/v1/users/me/favorites`           | authenticated | —                                                    |
-| Get user profile         | `GET /api/v1/users/{username}`             | authenticated | —                                                    |
+## Operational Gotchas
 
-**Entity model**:
-
-- `User` is the root aggregate with cascade ALL + orphanRemoval on its `@OneToMany` collections (recipes, comments,
-  ratings)
-- `Recipe` also cascades to comments/ratings (dual ownership)
-- `Recipe` ↔ `Ingredient` is a bidirectional `@ManyToMany` via `recipe_ingredients` join table
-- `User` ↔ `Recipe` is a unidirectional `@ManyToMany` via `user_favorite_recipes` join table (`user.favorites`)
-- All `@ManyToOne` are `FetchType.LAZY`; OSIV is disabled (`open-in-view=false`)
-- Lazy collections require `@Transactional` or `@EntityGraph` to avoid `LazyInitializationException`
-- `RecipeRepository` extends `JpaSpecificationExecutor<Recipe>` with `@EntityGraph` on its `findAll` overrides
-- `RecipeSpecification` provides static factories for keyword search (LIKE on `title`/`description`) and ingredient
-  filter (JOIN + IN, ANY semantics) via JPA Criteria API
-
-## Conventions
-
-- **Constructor injection** (`@RequiredArgsConstructor`), no `@Autowired` on fields
-- **Java Records** for DTOs and `@ConfigurationProperties` (not `@Data`); entities use Lombok `@Builder`
-- **Static factory methods** (`of(...)`) on response records
-- **Sealed exception hierarchy** extending `sealed abstract class ApplicationException`
-- **ProblemDetail** (RFC 7807) for error responses (`spring.mvc.problemdetails.enabled=true`)
-- Package names are singular (`model`, `repository`, `service`)
-- Test method names: `snake_case` with `@DisplayName` on class and each method
-- **Separate DTOs for creation vs update** — never reuse a single request type for both
-
-## Security / JWT
-
-- `POST /api/v1/auth/**` and `GET /api/v1/images/**` are `permitAll`; all other endpoints require authentication
-- CSRF disabled, CORS widely open (`*`), sessions STATELESS, `@EnableMethodSecurity` enabled
-- JWT in `Authorization: Bearer <token>` header; HMAC-SHA via jjwt
-- `app.jwt.secret` / env `JWT_SECRET` (base64), default dev key in `application.yaml`
-- `app.jwt.expiration-ms` / env `JWT_EXPIRATION_MS` (default 24h)
-- `CustomUserDetailsService.loadUserByUsername()` accepts username **or** email (tries username first)
-
-## File Storage
-
-- Interface `FileStorageService` with `store(MultipartFile)` and `load(String filename)` methods
-- `LocalFileStorageService` saves to configurable directory (`app.storage.upload-dir`, default `uploads/`)
-- Allowed extensions: jpg, jpeg, png, gif, webp (validated server-side)
-- SVG is rejected (XSS risk)
-- Upload flow: magic-byte check → `ImageIO` decode → re-encode (strips metadata, JPEG quality 0.70)
-- Animated GIFs are flattened to a single frame (security trade-off)
-- Filenames are UUIDs with original extension; returned URL path is `/api/v1/images/{uuid}.{ext}`
-- Image serving (`GET /api/v1/images/{filename}`) is public (permitAll)
-- Multipart limits: 5MB per file, 10MB per request (`spring.servlet.multipart`)
-
-## Tests (110 total)
-
-Four styles, all under `src/test/java/com/morsel/`:
-
-| Style                                 | Used for                                                                                   | Key setup                                                                                                                                                                   |
-|---------------------------------------|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Plain JUnit 5                         | GlobalExceptionHandler, JwtTokenProvider, UserPrincipal, LocalFileStorageService           | —                                                                                                                                                                           |
-| `@ExtendWith(MockitoExtension.class)` | UserService, RecipeService, CustomUserDetailsService, CommentService, RatingService, FavoriteService, RefreshTokenService, PasswordResetService, AuthService, UserProfileService, EmailServiceImpl | `@Mock`, `@InjectMocks`                                                                                     |
-| `@DataJpaTest` + Testcontainers       | UserRepository, CommentRepository, RatingRepository, RecipeRepository                      | `@AutoConfigureTestDatabase(replace = NONE)`, `@Import(TestcontainersConfiguration.class)`                                                                                  |
-| `@WebMvcTest` + Testcontainers        | AuthController, RecipeController, ImageController, CommentController, RatingController, UserController, FavoriteController | `excludeAutoConfiguration = {SecurityAutoConfiguration, UserDetailsServiceAutoConfiguration}`, `addFilters = false` + manual `SecurityContextHolder` setup in `@BeforeEach` |
-
-- **WebMvcTest auth setup**: Inject a `UsernamePasswordAuthenticationToken` with a `UserPrincipal` into
-  `SecurityContextHolder` before each test; clear in `@AfterEach`
-- **TestcontainersConfiguration** (`@TestConfiguration`, `@ServiceConnection`) provides the PostgreSQL container — no H2
-  allowed
-- Testcontainers auto-detects `Application.java` as the `@SpringBootApplication` from the classpath
-
-## Operational
-
-- **Virtual threads**: `spring.threads.virtual.enabled=true` — avoid `synchronized` (platform thread pinning); prefer
-  `ReentrantLock`
+- **Virtual threads**: `spring.threads.virtual.enabled=true` - avoid `synchronized`, use `ReentrantLock`
 - **DDL**: `spring.jpa.hibernate.ddl-auto=validate` (Flyway owns schema)
-- **Flyway migrations**: `src/main/resources/db/migration/`
-- **Postgres**: `docker compose up -d` (port 5432, user/pass: `morsel`/`secret`, DB: `morsel`) — or just run with Maven,
-  `spring-boot-docker-compose` auto-starts it
-- **Logging**: Spring Boot 4 native structured logging (`logging.structured.format.console: ecs`) — no custom Logback
-  config needed; test output is plain text by default
-- **Prod profile**: `application-prod.yaml` requires env vars for DB, JWT, CORS, mail, storage — no defaults; use
-  `-Dspring-boot.run.profiles=prod` to activate
-- `@EnableJpaAuditing` in `JpaConfig` (for `@CreationTimestamp`/`@UpdateTimestamp`)
-- **`@EntityGraph`** is required on any repository method that serves response serialization (avoids N+1 with OSIV
-  disabled)
-- **`RecipeRepository`** extends `JpaSpecificationExecutor` — the overridden `findAll(Specification, Pageable)` must
-  also
-  carry `@EntityGraph`
-- **`Specification.where(null)` is ambiguous** in Spring Data JPA 3.x — both `Specification<T>` and
-  `PredicateSpecification<T>` overloads match. Use `(root, query, cb) -> cb.conjunction()` as the match-all starting
-  point instead
-- **LIKE wildcards must be escaped** in `RecipeSpecification.withKeyword()` — escape `_` and `%` with a custom escape
-  character (`!`) to prevent unexpected pattern matching
-- **Ingredient lookup** validates all requested IDs exist — throws `ResourceNotFoundException` listing missing IDs
-- **Update does not call `save()`** — entity is managed inside `@Transactional`, dirty flushing happens at commit
-- **Rating upsert** uses native PostgreSQL `INSERT ... ON CONFLICT DO UPDATE` for atomic one-rating-per-user — no
-  find-then-create race
-- **Rating aggregates** use `AVG(score)` / `COUNT(*)` queries rather than loading all entities in memory
-- **List recipes** uses `RecipeSummaryResponse` (excludes `instructions`); sort fields whitelisted to
-  `{id, title, averageRating, createdAt, updatedAt}` — rejects 400 for invalid sort fields
-- **Max page size** enforced via `spring.data.web.pageable.max-page-size: 50` in `application.yaml`
+- **File storage**: Animated GIFs flattened to a single frame; SVG rejected (XSS risk)
+- **Prod profile**: Requires env vars for DB, JWT, CORS, mail, storage – no defaults
+- **Max page size**: 50 enforced via `spring.data.web.pageable.max-page-size`
+
+## Security
+
+- JWT in `Authorization: Bearer <token>` header with HMAC-SHA
+- `CustomUserDetailsService` accepts username **or** email (tries username first)
+- Image serving (`GET /api/v1/images/**`) is public
+
+## Docker Compose
+
+```yaml
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      - POSTGRES_DB=morsel
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_USER=morsel
+    ports:
+      - "5432:5432"
+```
