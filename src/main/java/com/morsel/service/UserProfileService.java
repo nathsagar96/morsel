@@ -1,5 +1,6 @@
 package com.morsel.service;
 
+import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.UserMapper;
@@ -23,11 +24,11 @@ public class UserProfileService {
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile(String username) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> {
-            log.warn("User profile not found: {}", username);
+            log.warn("User profile not found: {}", PiiSanitizer.sanitizeIdentifier(username));
             return new ResourceNotFoundException("User not found: " + username);
         });
         int recipeCount = Math.toIntExact(recipeRepository.countByAuthorId(user.getId()));
-        log.debug("Profile fetched for user: {}", username);
+        log.debug("Profile fetched for user: {}", PiiSanitizer.sanitizeIdentifier(username));
         return userMapper.toProfileResponse(user, recipeCount);
     }
 }

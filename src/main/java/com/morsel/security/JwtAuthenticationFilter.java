@@ -1,5 +1,8 @@
 package com.morsel.security;
 
+import com.morsel.config.logging.AuditLogger;
+import com.morsel.config.logging.AuditLogger.Event;
+import com.morsel.config.logging.AuditLogger.Outcome;
 import com.morsel.constants.AuthConstants;
 import com.morsel.model.Role;
 import com.morsel.model.User;
@@ -45,6 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     if (!c.enabled() || !c.accountNonLocked()) {
                         log.warn("User {} is disabled or locked, rejecting JWT", c.userId());
+                        AuditLogger.log(
+                                Event.JWT_REJECTED_DISABLED_LOCKED,
+                                c.userId(),
+                                Outcome.FAILURE,
+                                "enabled=" + c.enabled() + ",accountNonLocked=" + c.accountNonLocked());
                         SecurityContextHolder.clearContext();
                         filterChain.doFilter(request, response);
                         return;

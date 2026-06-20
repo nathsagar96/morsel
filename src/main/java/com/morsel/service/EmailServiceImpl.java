@@ -1,5 +1,6 @@
 package com.morsel.service;
 
+import com.morsel.config.logging.PiiSanitizer;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -44,9 +45,9 @@ public class EmailServiceImpl implements EmailService {
                     """.formatted(resetUrl);
             helper.setText(htmlContent, true);
             mailSender.send(message);
-            log.debug("Password reset email sent to {}", to);
+            log.debug("Password reset email sent to {}", PiiSanitizer.sanitizeEmail(to));
         } catch (MessagingException e) {
-            log.error("Failed to send password reset email to {}", to, e);
+            log.error("Failed to send password reset email to {}", PiiSanitizer.sanitizeEmail(to), e);
         }
     }
 }

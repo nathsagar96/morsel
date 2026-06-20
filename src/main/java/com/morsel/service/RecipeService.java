@@ -1,5 +1,9 @@
 package com.morsel.service;
 
+import com.morsel.config.logging.AuditLogger;
+import com.morsel.config.logging.AuditLogger.Event;
+import com.morsel.config.logging.AuditLogger.Outcome;
+import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
@@ -41,7 +45,11 @@ public class RecipeService {
         List<Ingredient> ingredients = lookupIngredients(request.ingredientIds());
         Recipe recipe = recipeMapper.toEntity(request, author, ingredients);
         recipe = recipeRepository.save(recipe);
-        log.info("Recipe created: id={}, title={}, author={}", recipe.getId(), recipe.getTitle(), author.getUsername());
+        log.info(
+                "Recipe created: id={}, title={}, author={}",
+                recipe.getId(),
+                recipe.getTitle(),
+                PiiSanitizer.sanitizeUsername(author.getUsername()));
         return recipeMapper.toResponse(recipe);
     }
 
@@ -85,7 +93,8 @@ public class RecipeService {
             throw new ForbiddenException("Only admins can delete recipes");
         }
         recipeRepository.delete(recipe);
-        log.info("Recipe deleted: id={} by admin={}", id, currentUser.getUsername());
+        log.info("Recipe deleted: id={} by admin={}", id, PiiSanitizer.sanitizeUsername(currentUser.getUsername()));
+        AuditLogger.log(Event.RECIPE_DELETED, currentUser.getId(), Outcome.SUCCESS, "recipeId=" + id);
     }
 
     @Transactional

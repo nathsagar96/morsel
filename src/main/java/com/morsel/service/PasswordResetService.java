@@ -1,5 +1,8 @@
 package com.morsel.service;
 
+import com.morsel.config.logging.AuditLogger;
+import com.morsel.config.logging.AuditLogger.Event;
+import com.morsel.config.logging.AuditLogger.Outcome;
 import com.morsel.exception.BadRequestException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.PasswordResetToken;
@@ -41,6 +44,7 @@ public class PasswordResetService {
                     .build();
             passwordResetTokenRepository.save(resetToken);
             log.debug("Password reset token generated for user {}", user.getId());
+            AuditLogger.log(Event.PASSWORD_RESET_INITIATED, user.getId(), Outcome.SUCCESS);
 
             emailService.sendPasswordResetEmail(user.getEmail(), token);
         });
@@ -52,16 +56,19 @@ public class PasswordResetService {
                 .findByToken(token)
                 .orElseThrow(() -> {
                     log.warn("Invalid password reset token");
+                    AuditLogger.log(Event.PASSWORD_RESET_FAILURE_INVALID_TOKEN, null, Outcome.FAILURE);
                     return new BadRequestException("Invalid or expired reset token");
                 });
 
         if (resetToken.isUsed()) {
-            log.warn("Password reset token already used: {}", token);
+            log.warn("Password reset token already used");
+            AuditLogger.log(Event.PASSWORD_RESET_FAILURE_USED_TOKEN, resetToken.getUserId(), Outcome.FAILURE);
             throw new BadRequestException("Reset token has already been used");
         }
 
         if (resetToken.getExpiresAt().isBefore(Instant.now())) {
-            log.warn("Password reset token expired: {}", token);
+            log.warn("Password reset token expired");
+            AuditLogger.log(Event.PASSWORD_RESET_FAILURE_EXPIRED_TOKEN, resetToken.getUserId(), Outcome.FAILURE);
             throw new BadRequestException("Reset token has expired");
         }
 
@@ -79,6 +86,7 @@ public class PasswordResetService {
         // Revoke all refresh tokens for security — force re-login everywhere
         refreshTokenService.revokeAllForUser(user.getId());
         log.debug("Password reset completed for user {}", user.getId());
+        AuditLogger.log(Event.PASSWORD_RESET_COMPLETED, user.getId(), Outcome.SUCCESS);
     }
 
     private String generateSecureToken() {

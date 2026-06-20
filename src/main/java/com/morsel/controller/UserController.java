@@ -1,5 +1,9 @@
 package com.morsel.controller;
 
+import com.morsel.config.logging.AuditLogger;
+import com.morsel.config.logging.AuditLogger.Event;
+import com.morsel.config.logging.AuditLogger.Outcome;
+import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.constants.ApiPaths;
 import com.morsel.constants.ErrorMessages;
 import com.morsel.dto.request.UserStatusRequest;
@@ -41,7 +45,7 @@ public class UserController {
 
     @GetMapping("/{username}")
     public UserProfileResponse getProfile(@PathVariable String username) {
-        log.debug("Profile request for user: {}", username);
+        log.debug("Profile request for user: {}", PiiSanitizer.sanitizeIdentifier(username));
         return userProfileService.getProfile(username);
     }
 
@@ -63,6 +67,7 @@ public class UserController {
         user.setEnabled(request.enabled());
         userRepository.save(user);
         log.info("User {} {} by admin", id, request.enabled() ? "enabled" : "disabled");
+        AuditLogger.log(Event.ADMIN_USER_STATUS_CHANGE, id, Outcome.SUCCESS, "enabled=" + request.enabled());
         return Map.of(
                 ErrorMessages.MESSAGE_KEY, "User " + (request.enabled() ? "enabled" : "disabled") + " successfully");
     }

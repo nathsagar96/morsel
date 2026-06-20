@@ -2,6 +2,10 @@ package com.morsel.service;
 
 import com.morsel.config.JwtProperties;
 import com.morsel.config.LockoutProperties;
+import com.morsel.config.logging.AuditLogger;
+import com.morsel.config.logging.AuditLogger.Event;
+import com.morsel.config.logging.AuditLogger.Outcome;
+import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
@@ -47,11 +51,23 @@ public class AuthService {
     @Transactional
     public AuthResponse register(SignUpRequest request) {
         if (userRepository.existsByUsername(request.username())) {
-            log.debug("Registration failed: username {} already exists", request.username());
+            log.debug(
+                    "Registration failed: username {} already exists",
+                    PiiSanitizer.sanitizeIdentifier(request.username()));
+            AuditLogger.log(
+                    Event.REGISTRATION_FAILURE_DUPLICATE_USERNAME,
+                    null,
+                    Outcome.FAILURE,
+                    "username=" + PiiSanitizer.sanitizeUsername(request.username()));
             throw new DuplicateResourceException("Username already exists");
         }
         if (userRepository.existsByEmail(request.email())) {
-            log.debug("Registration failed: email {} already exists", request.email());
+            log.debug("Registration failed: email {} already exists", PiiSanitizer.sanitizeIdentifier(request.email()));
+            AuditLogger.log(
+                    Event.REGISTRATION_FAILURE_DUPLICATE_EMAIL,
+                    null,
+                    Outcome.FAILURE,
+                    "email=" + PiiSanitizer.sanitizeEmail(request.email()));
             throw new DuplicateResourceException("Email already exists");
         }
 
@@ -61,6 +77,11 @@ public class AuthService {
             user = userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
             log.warn("Registration failed due to constraint violation: {}", e.getMessage());
+            AuditLogger.log(
+                    Event.REGISTRATION_FAILURE_CONSTRAINT_VIOLATION,
+                    null,
+                    Outcome.FAILURE,
+                    "constraint=" + e.getMessage());
             throw new DuplicateResourceException("Username or email already exists");
         }
 
@@ -74,7 +95,12 @@ public class AuthService {
         String jti = UUID.randomUUID().toString();
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), jti);
         refreshTokenService.create(user.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
-        log.debug("User registered: {}", request.username());
+        log.debug("User registered: {}", PiiSanitizer.sanitizeUsername(request.username()));
+        AuditLogger.log(
+                Event.REGISTRATION_SUCCESS,
+                user.getId(),
+                Outcome.SUCCESS,
+                "username=" + PiiSanitizer.sanitizeUsername(user.getUsername()));
         return userMapper.toAuthResponse(user, accessToken, refreshToken);
     }
 
@@ -91,18 +117,25 @@ public class AuthService {
                         && user.getLockTime()
                                 .plus(lockoutProperties.lockDurationMinutes(), ChronoUnit.MINUTES)
                                 .isBefore(Instant.now())) {
-                    log.debug("Lock duration expired for user {}, unlocking", user.getUsername());
+                    log.debug(
+                            "Lock duration expired for user {}, unlocking",
+                            PiiSanitizer.sanitizeUsername(user.getUsername()));
+                    AuditLogger.log(
+                            Event.ACCOUNT_UNLOCKED,
+                            user.getId(),
+                            Outcome.SUCCESS,
+                            "lockDurationMinutes=" + lockoutProperties.lockDurationMinutes());
                     user.setAccountNonLocked(true);
                     user.setFailedAttempts(0);
                     user.setLockTime(null);
                 } else {
-                    log.debug("Account locked for user {}", user.getUsername());
+                    log.debug("Account locked for user {}", PiiSanitizer.sanitizeUsername(user.getUsername()));
                     throw new AccountLockedException("Too many failed login attempts. Account is locked for %d minutes"
                             .formatted(lockoutProperties.lockDurationMinutes()));
                 }
             }
             if (!user.isEnabled()) {
-                log.debug("Account disabled for user {}", user.getUsername());
+                log.debug("Account disabled for user {}", PiiSanitizer.sanitizeUsername(user.getUsername()));
                 throw new AccountDisabledException("Account is disabled");
             }
         }
@@ -131,7 +164,8 @@ public class AuthService {
             String refreshToken = jwtTokenProvider.generateRefreshToken(authenticatedUser.getId(), jti);
             refreshTokenService.create(
                     authenticatedUser.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
-            log.debug("User signed in: {}", authenticatedUser.getUsername());
+            log.debug("User signed in: {}", PiiSanitizer.sanitizeUsername(authenticatedUser.getUsername()));
+            AuditLogger.log(Event.LOGIN_SUCCESS, authenticatedUser.getId(), Outcome.SUCCESS);
             return userMapper.toAuthResponse(authenticatedUser, accessToken, refreshToken);
         } catch (BadCredentialsException e) {
             if (user != null) {
@@ -140,11 +174,20 @@ public class AuthService {
                 if (newAttempts >= lockoutProperties.maxFailedAttempts()) {
                     user.setAccountNonLocked(false);
                     user.setLockTime(Instant.now());
-                    log.warn("Account locked after {} failed attempts for user {}", newAttempts, user.getUsername());
+                    log.warn(
+                            "Account locked after {} failed attempts for user {}",
+                            newAttempts,
+                            PiiSanitizer.sanitizeUsername(user.getUsername()));
+                    AuditLogger.log(
+                            Event.ACCOUNT_LOCKED, user.getId(), Outcome.SUCCESS, "failedAttempts=" + newAttempts);
                 } else {
-                    log.debug("Failed login attempt {} for user {}", newAttempts, user.getUsername());
+                    log.debug(
+                            "Failed login attempt {} for user {}",
+                            newAttempts,
+                            PiiSanitizer.sanitizeUsername(user.getUsername()));
                 }
             }
+            AuditLogger.log(Event.LOGIN_FAILURE, user != null ? user.getId() : null, Outcome.FAILURE, "badCredentials");
             throw e;
         }
     }
@@ -154,6 +197,7 @@ public class AuthService {
                 .validateRefreshToken(request.refreshToken())
                 .orElseThrow(() -> {
                     log.warn("Refresh token validation failed");
+                    AuditLogger.log(Event.TOKEN_REFRESH_FAILURE, null, Outcome.FAILURE, "invalidToken");
                     return new UnauthorizedException("Invalid or expired refresh token");
                 });
 
@@ -161,6 +205,7 @@ public class AuthService {
 
         User user = userRepository.findById(claims.userId()).orElseThrow(() -> {
             log.warn("User not found for refresh token, userId: {}", claims.userId());
+            AuditLogger.log(Event.TOKEN_REFRESH_FAILURE, claims.userId(), Outcome.FAILURE, "userNotFound");
             return new UnauthorizedException("Invalid or expired refresh token");
         });
 
@@ -174,7 +219,8 @@ public class AuthService {
         String newJti = UUID.randomUUID().toString();
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), newJti);
         refreshTokenService.create(user.getId(), newJti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
-        log.debug("Tokens refreshed for user {}", user.getUsername());
+        log.debug("Tokens refreshed for user {}", PiiSanitizer.sanitizeUsername(user.getUsername()));
+        AuditLogger.log(Event.TOKEN_REFRESH_SUCCESS, user.getId(), Outcome.SUCCESS);
         return userMapper.toAuthResponse(user, newAccessToken, newRefreshToken);
     }
 }

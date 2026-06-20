@@ -1,5 +1,6 @@
 package com.morsel.service;
 
+import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +22,15 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(@NonNull String usernameOrEmail) throws UsernameNotFoundException {
-        log.debug("Loading user by username or email: {}", usernameOrEmail);
+        log.debug("Loading user by username or email: {}", PiiSanitizer.sanitizeIdentifier(usernameOrEmail));
         return userRepository
                 .findByUsername(usernameOrEmail)
                 .or(() -> userRepository.findByEmail(usernameOrEmail))
                 .map(UserPrincipal::new)
                 .orElseThrow(() -> {
-                    log.debug("User not found with username or email: {}", usernameOrEmail);
+                    log.debug(
+                            "User not found with username or email: {}",
+                            PiiSanitizer.sanitizeIdentifier(usernameOrEmail));
                     return new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail);
                 });
     }
