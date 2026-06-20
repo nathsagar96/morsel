@@ -22,8 +22,7 @@ public final class RecipeSpecification {
     }
 
     public static Specification<Recipe> withIngredients(List<Long> ingredientIds) {
-        return (root, query, _) -> {
-            query.distinct(true);
+        return (root, _, _) -> {
             Join<Recipe, Ingredient> ingredients = root.join("ingredients");
             return ingredients.get("id").in(ingredientIds);
         };

@@ -9,8 +9,8 @@ import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
 import com.morsel.model.User;
+import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +26,9 @@ class UserProfileServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private RecipeRepository recipeRepository;
 
     @Mock
     private UserMapper userMapper;
@@ -49,19 +52,21 @@ class UserProfileServiceTest {
     @Test
     @DisplayName("returns profile for existing username")
     void getProfile_withExistingUsername_returnsProfile() {
-        when(userRepository.findWithRecipesByUsername("testuser")).thenReturn(Optional.of(user));
-        when(userMapper.toProfileResponse(user)).thenReturn(new UserProfileResponse(1L, "testuser", List.of()));
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(recipeRepository.countByAuthorId(1L)).thenReturn(3L);
+        when(userMapper.toProfileResponse(user, 3)).thenReturn(new UserProfileResponse(1L, "testuser", 3));
 
         UserProfileResponse response = userProfileService.getProfile("testuser");
 
         assertThat(response.id()).isEqualTo(1L);
         assertThat(response.username()).isEqualTo("testuser");
+        assertThat(response.recipeCount()).isEqualTo(3);
     }
 
     @Test
     @DisplayName("throws ResourceNotFoundException for unknown username")
     void getProfile_withUnknownUsername_throwsNotFound() {
-        when(userRepository.findWithRecipesByUsername("unknown")).thenReturn(Optional.empty());
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userProfileService.getProfile("unknown"))
                 .isInstanceOf(ResourceNotFoundException.class)

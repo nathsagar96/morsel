@@ -14,6 +14,7 @@ import com.morsel.model.Recipe;
 import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.RatingRepository;
+import com.morsel.repository.RecipeRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,9 @@ class RatingServiceTest {
     @Mock
     private RecipeService recipeService;
 
+    @Mock
+    private RecipeRepository recipeRepository;
+
     @InjectMocks
     private RatingService ratingService;
 
@@ -53,40 +57,34 @@ class RatingServiceTest {
     }
 
     @Test
-    @DisplayName("creates new rating and updates recipe averages")
-    void addOrUpdateRating_newRating_createsAndUpdatesAverages() {
+    @DisplayName("creates new rating and refreshes recipe aggregates")
+    void addOrUpdateRating_newRating_refreshesAggregates() {
         when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
         when(ratingRepository.findByUserIdAndRecipeId(1L, 100L)).thenReturn(Optional.of(rating));
-        when(ratingRepository.findAverageScoreByRecipeId(100L)).thenReturn(Optional.of(4.0));
-        when(ratingRepository.findCountByRecipeId(100L)).thenReturn(1);
         when(ratingMapper.toResponse(rating)).thenReturn(RatingResponse.of(rating));
 
         RatingResponse response = ratingService.addOrUpdateRating(100L, request, user);
 
         assertThat(response.score()).isEqualTo(4);
-        assertThat(recipe.getAverageRating()).isEqualTo(4.0);
-        assertThat(recipe.getRatingCount()).isEqualTo(1);
         verify(ratingRepository).upsert(4, 1L, 100L);
+        verify(recipeRepository).refreshRatingAggregates(100L);
     }
 
     @Test
-    @DisplayName("updates existing rating and recalculates averages")
-    void addOrUpdateRating_existingRating_updatesAndRecalculates() {
+    @DisplayName("updates existing rating and refreshes aggregates")
+    void addOrUpdateRating_existingRating_refreshesAggregates() {
         Rating existingRating =
                 Rating.builder().id(10L).score(5).user(user).recipe(recipe).build();
         RatingRequest updateRequest = new RatingRequest(5);
 
         when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
         when(ratingRepository.findByUserIdAndRecipeId(1L, 100L)).thenReturn(Optional.of(existingRating));
-        when(ratingRepository.findAverageScoreByRecipeId(100L)).thenReturn(Optional.of(4.0));
-        when(ratingRepository.findCountByRecipeId(100L)).thenReturn(2);
         when(ratingMapper.toResponse(existingRating)).thenReturn(RatingResponse.of(existingRating));
 
         ratingService.addOrUpdateRating(100L, updateRequest, user);
 
-        assertThat(recipe.getAverageRating()).isEqualTo(4.0);
-        assertThat(recipe.getRatingCount()).isEqualTo(2);
         verify(ratingRepository).upsert(5, 1L, 100L);
+        verify(recipeRepository).refreshRatingAggregates(100L);
         verify(ratingMapper).toResponse(existingRating);
     }
 

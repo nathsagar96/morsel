@@ -23,7 +23,7 @@ public class UserMapper {
         return AuthResponse.of(token, refreshToken, user.getId(), user.getUsername(), user.getEmail());
     }
 
-    public UserProfileResponse toProfileResponse(User user) {
-        return UserProfileResponse.of(user);
+    public UserProfileResponse toProfileResponse(User user, int recipeCount) {
+        return UserProfileResponse.of(user, recipeCount);
     }
 }

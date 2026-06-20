@@ -63,7 +63,7 @@ class UserControllerTest {
     private final User user =
             User.builder().id(1L).username("testuser").role(Role.USER).build();
     private final UserPrincipal userPrincipal = new UserPrincipal(user);
-    private final UserProfileResponse profileResponse = new UserProfileResponse(1L, "testuser", List.of());
+    private final UserProfileResponse profileResponse = new UserProfileResponse(1L, "testuser", 0);
 
     @BeforeEach
     void setUpAuth() {
