@@ -35,8 +35,8 @@ com.morsel
 ├── config/                          # SecurityConfig, JpaConfig, JwtProperties, StorageProperties (records)
 ├── controller/                      # AuthController, RecipeController, ImageController, CommentController, RatingController
 ├── dto/request/                     # SignUpRequest, LoginRequest, CreateRecipeRequest, UpdateRecipeRequest, CommentRequest, RatingRequest (records)
-├── dto/response/                    # AuthResponse, RecipeResponse, CommentResponse, RatingResponse (records with static of() factory)
-├── exception/                       # sealed: ApplicationException ← DuplicateResourceException, ForbiddenException, InvalidFileException, ResourceNotFoundException
+├── dto/response/                    # AuthResponse, RecipeResponse, RecipeSummaryResponse, CommentResponse, RatingResponse, UserProfileResponse (records with static of() factory)
+├── exception/                       # sealed: ApplicationException ← BadRequestException, DuplicateResourceException, ForbiddenException, InvalidFileException, ResourceNotFoundException
 ├── mapper/                          # UserMapper, RecipeMapper, CommentMapper, RatingMapper (@Component)
 ├── model/                           # User, Recipe, Ingredient, Comment, Rating + Role enum
 ├── repository/                      # JpaRepository interfaces
@@ -49,24 +49,24 @@ com.morsel
 
 **API endpoints** (16 total):
 
-| Action                   | Path                                       | Auth          | Query params                               |
-|--------------------------|--------------------------------------------|---------------|--------------------------------------------|
-| Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     | —                                          |
-| Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     | —                                          |
-| Create recipe            | `POST /api/v1/recipes`                     | authenticated | —                                          |
-| List recipes (paginated) | `GET /api/v1/recipes`                      | permitAll     | `keyword`, `ingredients` (comma-separated) |
-| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | permitAll     | —                                          |
-| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   | —                                          |
-| Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   | —                                          |
-| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    | —                                          |
-| Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated | —                                          |
-| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | permitAll     | —                                          |
-| Add/update rating        | `POST /api/v1/recipes/{recipeId}/ratings`  | authenticated | —                                          |
-| Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     | —                                          |
-| Add favorite             | `POST /api/v1/recipes/{id}/favorite`       | authenticated | —                                          |
-| Remove favorite          | `DELETE /api/v1/recipes/{id}/favorite`     | authenticated | —                                          |
-| Get my favorites         | `GET /api/v1/users/me/favorites`           | authenticated | —                                          |
-| Get user profile         | `GET /api/v1/users/{username}`             | authenticated | —                                          |
+| Action                   | Path                                       | Auth          | Query params                                         |
+|--------------------------|--------------------------------------------|---------------|------------------------------------------------------|
+| Sign up                  | `POST /api/v1/auth/signup`                 | permitAll     | —                                                    |
+| Sign in                  | `POST /api/v1/auth/signin`                 | permitAll     | —                                                    |
+| Create recipe            | `POST /api/v1/recipes`                     | authenticated | —                                                    |
+| List recipes (paginated) | `GET /api/v1/recipes`                      | permitAll     | `keyword`, `ingredients` (comma-separated), sort, page, size |
+| Get recipe by id         | `GET /api/v1/recipes/{id}`                 | permitAll     | —                                                    |
+| Update recipe (owner)    | `PUT /api/v1/recipes/{id}`                 | owner check   | —                                                    |
+| Upload recipe image      | `POST /api/v1/recipes/{id}/image`          | owner check   | —                                                    |
+| Delete recipe (admin)    | `DELETE /api/v1/recipes/{id}`              | admin only    | —                                                    |
+| Add comment              | `POST /api/v1/recipes/{recipeId}/comments` | authenticated | —                                                    |
+| List comments            | `GET /api/v1/recipes/{recipeId}/comments`  | permitAll     | —                                                    |
+| Upsert my rating         | `PUT /api/v1/recipes/{recipeId}/ratings/me`| authenticated | —                                                    |
+| Serve stored image       | `GET /api/v1/images/{filename}`            | permitAll     | —                                                    |
+| Add favorite             | `POST /api/v1/recipes/{id}/favorite`       | authenticated | —                                                    |
+| Remove favorite          | `DELETE /api/v1/recipes/{id}/favorite`     | authenticated | —                                                    |
+| Get my favorites         | `GET /api/v1/users/me/favorites`           | authenticated | —                                                    |
+| Get user profile         | `GET /api/v1/users/{username}`             | authenticated | —                                                    |
 
 **Entity model**:
 
@@ -151,3 +151,6 @@ Four styles, all under `src/test/java/com/morsel/`:
 - **Rating upsert** uses native PostgreSQL `INSERT ... ON CONFLICT DO UPDATE` for atomic one-rating-per-user — no
   find-then-create race
 - **Rating aggregates** use `AVG(score)` / `COUNT(*)` queries rather than loading all entities in memory
+- **List recipes** uses `RecipeSummaryResponse` (excludes `instructions`); sort fields whitelisted to
+  `{id, title, averageRating, createdAt, updatedAt}` — rejects 400 for invalid sort fields
+- **Max page size** enforced via `spring.data.web.pageable.max-page-size: 50` in `application.yaml`

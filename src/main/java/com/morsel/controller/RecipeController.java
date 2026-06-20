@@ -3,16 +3,20 @@ package com.morsel.controller;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
+import com.morsel.dto.response.RecipeSummaryResponse;
+import com.morsel.exception.BadRequestException;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.RecipeService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.SortDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -33,6 +37,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class RecipeController {
 
+    private static final Set<String> ALLOWED_SORT_FIELDS =
+            Set.of("id", "title", "averageRating", "createdAt", "updatedAt");
+
     private final RecipeService recipeService;
 
     @PostMapping
@@ -44,10 +51,12 @@ public class RecipeController {
     }
 
     @GetMapping
-    public Page<RecipeResponse> findAll(
+    public Page<RecipeSummaryResponse> findAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) List<Long> ingredients,
-            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20) @SortDefault(sort = "createdAt", direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        validateSort(pageable);
         log.debug("Find recipes: keyword={}, ingredients={}, pageable={}", keyword, ingredients, pageable);
         return recipeService.findAll(keyword, ingredients, pageable);
     }
@@ -85,5 +94,17 @@ public class RecipeController {
     public void delete(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal principal) {
         log.debug("Delete recipe id={} by user: {}", id, principal.user().getId());
         recipeService.delete(id, principal.user());
+    }
+
+    private void validateSort(Pageable pageable) {
+        if (pageable.getSort().isUnsorted()) {
+            return;
+        }
+        for (Sort.Order order : pageable.getSort()) {
+            if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new BadRequestException(
+                        "Sort field '" + order.getProperty() + "' is not allowed. Allowed: " + ALLOWED_SORT_FIELDS);
+            }
+        }
     }
 }

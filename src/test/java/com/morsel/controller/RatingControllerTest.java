@@ -3,7 +3,7 @@ package com.morsel.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -69,26 +69,26 @@ class RatingControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/recipes/{recipeId}/ratings returns 201")
-    void addOrUpdateRating_withValidRequest_returns201() throws Exception {
+    @DisplayName("PUT /api/v1/recipes/{recipeId}/ratings/me returns 200")
+    void addOrUpdateRating_withValidRequest_returns200() throws Exception {
         when(ratingService.addOrUpdateRating(eq(100L), any(RatingRequest.class), any(User.class)))
                 .thenReturn(ratingResponse);
 
-        mockMvc.perform(post("/api/v1/recipes/100/ratings")
+        mockMvc.perform(put("/api/v1/recipes/100/ratings/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"score":4}
                                 """))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))
                 .andExpect(jsonPath("$.score").value(4))
                 .andExpect(jsonPath("$.username").value("user"));
     }
 
     @Test
-    @DisplayName("POST /api/v1/recipes/{recipeId}/ratings returns 400 for score below 1")
+    @DisplayName("PUT /api/v1/recipes/{recipeId}/ratings/me returns 400 for score below 1")
     void addOrUpdateRating_withScoreBelowMin_returns400() throws Exception {
-        mockMvc.perform(post("/api/v1/recipes/100/ratings")
+        mockMvc.perform(put("/api/v1/recipes/100/ratings/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"score":0}
@@ -97,9 +97,9 @@ class RatingControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/recipes/{recipeId}/ratings returns 400 for score above 5")
+    @DisplayName("PUT /api/v1/recipes/{recipeId}/ratings/me returns 400 for score above 5")
     void addOrUpdateRating_withScoreAboveMax_returns400() throws Exception {
-        mockMvc.perform(post("/api/v1/recipes/100/ratings")
+        mockMvc.perform(put("/api/v1/recipes/100/ratings/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"score":6}
@@ -108,12 +108,12 @@ class RatingControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/recipes/{recipeId}/ratings returns 404 when recipe not found")
+    @DisplayName("PUT /api/v1/recipes/{recipeId}/ratings/me returns 404 when recipe not found")
     void addOrUpdateRating_withNonExistentRecipe_returns404() throws Exception {
         when(ratingService.addOrUpdateRating(eq(999L), any(RatingRequest.class), any(User.class)))
                 .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
 
-        mockMvc.perform(post("/api/v1/recipes/999/ratings")
+        mockMvc.perform(put("/api/v1/recipes/999/ratings/me")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"score":4}

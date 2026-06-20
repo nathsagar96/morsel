@@ -5,7 +5,11 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public abstract sealed class ApplicationException extends RuntimeException
-        permits DuplicateResourceException, ForbiddenException, InvalidFileException, ResourceNotFoundException {
+        permits BadRequestException,
+                DuplicateResourceException,
+                ForbiddenException,
+                InvalidFileException,
+                ResourceNotFoundException {
 
     private final HttpStatus status;
 

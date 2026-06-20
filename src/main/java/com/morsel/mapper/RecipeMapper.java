@@ -3,6 +3,7 @@ package com.morsel.mapper;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
+import com.morsel.dto.response.RecipeSummaryResponse;
 import com.morsel.model.Ingredient;
 import com.morsel.model.Recipe;
 import com.morsel.model.User;
@@ -29,6 +30,21 @@ public class RecipeMapper {
                 recipe.getTitle(),
                 recipe.getDescription(),
                 recipe.getInstructions(),
+                recipe.getImageUrl(),
+                recipe.getAuthor().getId(),
+                recipe.getAuthor().getUsername(),
+                recipe.getIngredients().stream().map(i -> i.getId()).toList(),
+                recipe.getAverageRating(),
+                recipe.getRatingCount(),
+                recipe.getCreatedAt(),
+                recipe.getUpdatedAt());
+    }
+
+    public RecipeSummaryResponse toSummaryResponse(Recipe recipe) {
+        return new RecipeSummaryResponse(
+                recipe.getId(),
+                recipe.getTitle(),
+                recipe.getDescription(),
                 recipe.getImageUrl(),
                 recipe.getAuthor().getId(),
                 recipe.getAuthor().getUsername(),

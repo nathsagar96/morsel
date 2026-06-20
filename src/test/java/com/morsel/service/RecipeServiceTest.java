@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
+import com.morsel.dto.response.RecipeSummaryResponse;
 import com.morsel.exception.ForbiddenException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.RecipeMapper;
@@ -60,6 +61,7 @@ class RecipeServiceTest {
     private User otherUser;
     private Recipe recipe;
     private RecipeResponse recipeResponse;
+    private RecipeSummaryResponse recipeSummaryResponse;
     private CreateRecipeRequest createRequest;
     private UpdateRecipeRequest updateRequest;
     private Ingredient ingredient;
@@ -91,6 +93,8 @@ class RecipeServiceTest {
                 null,
                 null,
                 null);
+        recipeSummaryResponse = new RecipeSummaryResponse(
+                100L, "Original Title", "Original desc", null, 1L, "author", List.of(10L), null, null, null, null);
         createRequest = new CreateRecipeRequest("New Title", "New desc", "New steps", null, List.of(10L));
         updateRequest = new UpdateRecipeRequest("Updated", "Updated desc", "Updated steps", null, List.of(10L));
     }
@@ -140,9 +144,9 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
+        when(recipeMapper.toSummaryResponse(recipe)).thenReturn(recipeSummaryResponse);
 
-        Page<RecipeResponse> result = recipeService.findAll(pageable);
+        Page<RecipeSummaryResponse> result = recipeService.findAll(pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");
@@ -154,9 +158,9 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
+        when(recipeMapper.toSummaryResponse(recipe)).thenReturn(recipeSummaryResponse);
 
-        Page<RecipeResponse> result = recipeService.findAll("Original", null, pageable);
+        Page<RecipeSummaryResponse> result = recipeService.findAll("Original", null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");
@@ -168,9 +172,9 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
+        when(recipeMapper.toSummaryResponse(recipe)).thenReturn(recipeSummaryResponse);
 
-        Page<RecipeResponse> result = recipeService.findAll(null, List.of(10L), pageable);
+        Page<RecipeSummaryResponse> result = recipeService.findAll(null, List.of(10L), pageable);
 
         assertThat(result.getContent()).hasSize(1);
     }
@@ -181,9 +185,9 @@ class RecipeServiceTest {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
-        when(recipeMapper.toResponse(recipe)).thenReturn(recipeResponse);
+        when(recipeMapper.toSummaryResponse(recipe)).thenReturn(recipeSummaryResponse);
 
-        Page<RecipeResponse> result = recipeService.findAll("Original", List.of(10L), pageable);
+        Page<RecipeSummaryResponse> result = recipeService.findAll("Original", List.of(10L), pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");

@@ -19,6 +19,10 @@ spring:
   threads:
     virtual:
       enabled: true
+  data:
+    web:
+      pageable:
+        max-page-size: 50
 
 app:
   jwt:

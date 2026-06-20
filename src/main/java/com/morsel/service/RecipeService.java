@@ -3,6 +3,7 @@ package com.morsel.service;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
+import com.morsel.dto.response.RecipeSummaryResponse;
 import com.morsel.exception.ForbiddenException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.mapper.RecipeMapper;
@@ -45,12 +46,12 @@ public class RecipeService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RecipeResponse> findAll(Pageable pageable) {
+    public Page<RecipeSummaryResponse> findAll(Pageable pageable) {
         return findAll(null, null, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Page<RecipeResponse> findAll(String keyword, List<Long> ingredientIds, Pageable pageable) {
+    public Page<RecipeSummaryResponse> findAll(String keyword, List<Long> ingredientIds, Pageable pageable) {
         Specification<Recipe> spec = (_, _, cb) -> cb.conjunction();
         if (keyword != null && !keyword.isBlank()) {
             spec = spec.and(RecipeSpecification.withKeyword(keyword));
@@ -58,7 +59,7 @@ public class RecipeService {
         if (ingredientIds != null && !ingredientIds.isEmpty()) {
             spec = spec.and(RecipeSpecification.withIngredients(ingredientIds));
         }
-        return recipeRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
+        return recipeRepository.findAll(spec, pageable).map(recipeMapper::toSummaryResponse);
     }
 
     @Transactional(readOnly = true)

@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
+import com.morsel.dto.response.RecipeSummaryResponse;
 import com.morsel.exception.ForbiddenException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.Role;
@@ -71,6 +72,8 @@ class RecipeControllerTest {
     private final Instant now = Instant.now();
     private final RecipeResponse recipeResponse =
             new RecipeResponse(100L, "Title", "Desc", "Steps", null, 1L, "author", List.of(10L), 0.0, 0, now, now);
+    private final RecipeSummaryResponse recipeSummaryResponse =
+            new RecipeSummaryResponse(100L, "Title", "Desc", null, 1L, "author", List.of(10L), 0.0, 0, now, now);
 
     @BeforeEach
     void setUpAuth() {
@@ -127,7 +130,7 @@ class RecipeControllerTest {
     @Test
     @DisplayName("GET /api/v1/recipes returns paginated list")
     void findAll_returns200WithPage() throws Exception {
-        when(recipeService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(List.of(recipeResponse)));
+        when(recipeService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(List.of(recipeSummaryResponse)));
 
         mockMvc.perform(get("/api/v1/recipes"))
                 .andExpect(status().isOk())
@@ -138,7 +141,8 @@ class RecipeControllerTest {
     @Test
     @DisplayName("GET /api/v1/recipes filters by keyword")
     void findAll_withKeyword_returnsFilteredResults() throws Exception {
-        when(recipeService.findAll(eq("pasta"), any(), any())).thenReturn(new PageImpl<>(List.of(recipeResponse)));
+        when(recipeService.findAll(eq("pasta"), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(recipeSummaryResponse)));
 
         mockMvc.perform(get("/api/v1/recipes?keyword=pasta"))
                 .andExpect(status().isOk())
@@ -149,7 +153,7 @@ class RecipeControllerTest {
     @DisplayName("GET /api/v1/recipes filters by ingredients")
     void findAll_withIngredients_returnsFilteredResults() throws Exception {
         when(recipeService.findAll(any(), eq(List.of(1L, 2L)), any()))
-                .thenReturn(new PageImpl<>(List.of(recipeResponse)));
+                .thenReturn(new PageImpl<>(List.of(recipeSummaryResponse)));
 
         mockMvc.perform(get("/api/v1/recipes?ingredients=1,2"))
                 .andExpect(status().isOk())
@@ -160,11 +164,17 @@ class RecipeControllerTest {
     @DisplayName("GET /api/v1/recipes filters by keyword and ingredients combined")
     void findAll_withKeywordAndIngredients_returnsCombinedResults() throws Exception {
         when(recipeService.findAll(eq("pasta"), eq(List.of(1L, 2L)), any()))
-                .thenReturn(new PageImpl<>(List.of(recipeResponse)));
+                .thenReturn(new PageImpl<>(List.of(recipeSummaryResponse)));
 
         mockMvc.perform(get("/api/v1/recipes?keyword=pasta&ingredients=1,2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(100));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/recipes returns 400 for invalid sort field")
+    void findAll_withInvalidSortField_returns400() throws Exception {
+        mockMvc.perform(get("/api/v1/recipes?sort=invalidField,asc")).andExpect(status().isBadRequest());
     }
 
     @Test
