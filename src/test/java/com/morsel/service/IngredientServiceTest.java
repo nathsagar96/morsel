@@ -61,10 +61,7 @@ class IngredientServiceTest {
                 .updatedAt(Instant.parse("2025-06-20T14:45:00Z"))
                 .build();
         ingredientResponse = new IngredientResponse(
-                10L,
-                "Tomato",
-                Instant.parse("2025-06-15T10:30:00Z"),
-                Instant.parse("2025-06-20T14:45:00Z"));
+                10L, "Tomato", Instant.parse("2025-06-15T10:30:00Z"), Instant.parse("2025-06-20T14:45:00Z"));
     }
 
     @Test
@@ -86,7 +83,8 @@ class IngredientServiceTest {
     void findAll_withKeyword_returnsFilteredResults() {
         PageRequest pageable = PageRequest.of(0, 20);
         Page<Ingredient> page = new PageImpl<>(List.of(ingredient));
-        when(ingredientRepository.findByNameContainingIgnoreCase("Tom", pageable)).thenReturn(page);
+        when(ingredientRepository.findByNameContainingIgnoreCase("Tom", pageable))
+                .thenReturn(page);
         when(ingredientMapper.toResponse(ingredient)).thenReturn(ingredientResponse);
 
         Page<IngredientResponse> result = ingredientService.findAll("Tom", pageable);

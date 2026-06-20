@@ -73,8 +73,8 @@ class IngredientControllerTest {
     void setUpAuth() {
         SecurityContextHolder.setContext(SecurityContextHolder.createEmptyContext());
         SecurityContextHolder.getContext()
-                .setAuthentication(new UsernamePasswordAuthenticationToken(
-                        adminPrincipal, null, adminPrincipal.getAuthorities()));
+                .setAuthentication(
+                        new UsernamePasswordAuthenticationToken(adminPrincipal, null, adminPrincipal.getAuthorities()));
     }
 
     @AfterEach
@@ -85,8 +85,7 @@ class IngredientControllerTest {
     @Test
     @DisplayName("GET /api/v1/ingredients returns paginated list")
     void findAll_returns200WithPage() throws Exception {
-        when(ingredientService.findAll(any(), any()))
-                .thenReturn(new PageImpl<>(List.of(ingredientResponse)));
+        when(ingredientService.findAll(any(), any())).thenReturn(new PageImpl<>(List.of(ingredientResponse)));
 
         mockMvc.perform(get("/api/v1/ingredients"))
                 .andExpect(status().isOk())
@@ -97,8 +96,7 @@ class IngredientControllerTest {
     @Test
     @DisplayName("GET /api/v1/ingredients filters by keyword")
     void findAll_withKeyword_returnsFilteredResults() throws Exception {
-        when(ingredientService.findAll(eq("Tom"), any()))
-                .thenReturn(new PageImpl<>(List.of(ingredientResponse)));
+        when(ingredientService.findAll(eq("Tom"), any())).thenReturn(new PageImpl<>(List.of(ingredientResponse)));
 
         mockMvc.perform(get("/api/v1/ingredients?keyword=Tom"))
                 .andExpect(status().isOk())
@@ -168,8 +166,7 @@ class IngredientControllerTest {
     @Test
     @DisplayName("PUT /api/v1/ingredients/{id} returns 200 for valid update")
     void update_withValidRequest_returns200() throws Exception {
-        when(ingredientService.update(eq(10L), any(IngredientRequest.class)))
-                .thenReturn(ingredientResponse);
+        when(ingredientService.update(eq(10L), any(IngredientRequest.class))).thenReturn(ingredientResponse);
 
         mockMvc.perform(put("/api/v1/ingredients/10")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -203,7 +200,8 @@ class IngredientControllerTest {
     @Test
     @DisplayName("DELETE /api/v1/ingredients/{id} returns 403 when non-admin deletes")
     void delete_byNonAdmin_returns403() throws Exception {
-        User regularUser = User.builder().id(1L).username("user").role(Role.USER).build();
+        User regularUser =
+                User.builder().id(1L).username("user").role(Role.USER).build();
         UserPrincipal userPrincipal = new UserPrincipal(regularUser);
         SecurityContextHolder.getContext()
                 .setAuthentication(

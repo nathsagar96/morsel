@@ -56,8 +56,7 @@ public class IngredientController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public IngredientResponse create(
-            @Valid @RequestBody IngredientRequest request,
-            @AuthenticationPrincipal UserPrincipal principal) {
+            @Valid @RequestBody IngredientRequest request, @AuthenticationPrincipal UserPrincipal principal) {
         log.debug("Create ingredient by user: {}", principal.user().getId());
         return ingredientService.create(request);
     }

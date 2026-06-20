@@ -31,7 +31,8 @@ public class IngredientService {
     @Transactional(readOnly = true)
     public Page<IngredientResponse> findAll(String keyword, Pageable pageable) {
         if (keyword != null && !keyword.isBlank()) {
-            return ingredientRepository.findByNameContainingIgnoreCase(keyword, pageable)
+            return ingredientRepository
+                    .findByNameContainingIgnoreCase(keyword, pageable)
                     .map(ingredientMapper::toResponse);
         }
         return ingredientRepository.findAll(pageable).map(ingredientMapper::toResponse);
