@@ -12,6 +12,7 @@ import com.morsel.exception.DuplicateResourceException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.Role;
 import com.morsel.model.User;
+import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.CustomUserDetailsService;
@@ -48,6 +49,9 @@ class FavoriteControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private final User user =
             User.builder().id(1L).username("testuser").role(Role.USER).build();

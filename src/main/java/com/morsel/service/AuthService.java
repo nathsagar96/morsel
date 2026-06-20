@@ -2,10 +2,6 @@ package com.morsel.service;
 
 import com.morsel.config.JwtProperties;
 import com.morsel.config.LockoutProperties;
-import com.morsel.config.logging.AuditLogger;
-import com.morsel.config.logging.AuditLogger.Event;
-import com.morsel.config.logging.AuditLogger.Outcome;
-import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
@@ -14,6 +10,10 @@ import com.morsel.exception.AccountDisabledException;
 import com.morsel.exception.AccountLockedException;
 import com.morsel.exception.DuplicateResourceException;
 import com.morsel.exception.UnauthorizedException;
+import com.morsel.logging.AuditLogger;
+import com.morsel.logging.AuditLogger.Event;
+import com.morsel.logging.AuditLogger.Outcome;
+import com.morsel.logging.PiiSanitizer;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.Role;
 import com.morsel.model.User;
@@ -85,13 +85,7 @@ public class AuthService {
             throw new DuplicateResourceException("Username or email already exists");
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getRole().name(),
-                user.isEnabled(),
-                user.isAccountNonLocked());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), user.getEmail());
         String jti = UUID.randomUUID().toString();
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), jti);
         refreshTokenService.create(user.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
@@ -154,12 +148,7 @@ public class AuthService {
             }
 
             String accessToken = jwtTokenProvider.generateAccessToken(
-                    authenticatedUser.getId(),
-                    authenticatedUser.getUsername(),
-                    authenticatedUser.getEmail(),
-                    authenticatedUser.getRole().name(),
-                    authenticatedUser.isEnabled(),
-                    authenticatedUser.isAccountNonLocked());
+                    authenticatedUser.getId(), authenticatedUser.getUsername(), authenticatedUser.getEmail());
             String jti = UUID.randomUUID().toString();
             String refreshToken = jwtTokenProvider.generateRefreshToken(authenticatedUser.getId(), jti);
             refreshTokenService.create(
@@ -209,13 +198,7 @@ public class AuthService {
             return new UnauthorizedException("Invalid or expired refresh token");
         });
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getRole().name(),
-                user.isEnabled(),
-                user.isAccountNonLocked());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), user.getEmail());
         String newJti = UUID.randomUUID().toString();
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), newJti);
         refreshTokenService.create(user.getId(), newJti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));

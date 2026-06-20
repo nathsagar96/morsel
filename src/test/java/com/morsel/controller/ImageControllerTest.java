@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.morsel.exception.ResourceNotFoundException;
+import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.service.CustomUserDetailsService;
 import com.morsel.storage.FileStorageService;
@@ -40,6 +41,9 @@ class ImageControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("GET /api/v1/images/{filename} returns 200 with image content")

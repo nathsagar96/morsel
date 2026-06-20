@@ -1,24 +1,32 @@
 package com.morsel.service;
 
 import com.morsel.exception.UnauthorizedException;
-import com.morsel.model.RefreshToken;
 import com.morsel.repository.RefreshTokenRepository;
 import java.time.Instant;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TransactionTemplate requiresNewTransaction;
+
+    public RefreshTokenService(
+            RefreshTokenRepository refreshTokenRepository, PlatformTransactionManager transactionManager) {
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.requiresNewTransaction = new TransactionTemplate(transactionManager);
+        this.requiresNewTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     @Transactional
     public void create(Long userId, String jti, Instant expiresAt) {
-        RefreshToken token = RefreshToken.builder()
+        var token = com.morsel.model.RefreshToken.builder()
                 .jti(jti)
                 .userId(userId)
                 .expiresAt(expiresAt)
@@ -30,29 +38,19 @@ public class RefreshTokenService {
 
     @Transactional
     public void validateAndRotate(String jti, Long userId) {
-        RefreshToken token = refreshTokenRepository.findByJti(jti).orElseThrow(() -> {
-            log.warn("Refresh token jti={} not found in store", jti);
-            return new UnauthorizedException("Invalid refresh token");
-        });
-
-        if (token.isRevoked()) {
+        if (refreshTokenRepository.markRevokedIfNotRevoked(jti) == 0) {
             log.warn("Refresh token reuse detected for user {} — revoking all tokens", userId);
-            revokeAllForUser(userId);
+            requiresNewTransaction.executeWithoutResult(status -> refreshTokenRepository.revokeAllByUserId(userId));
             throw new UnauthorizedException("Refresh token has been revoked");
         }
-
-        token.setRevoked(true);
-        refreshTokenRepository.save(token);
         log.debug("Revoked refresh token jti={}", jti);
     }
 
     @Transactional
     public void revokeAllForUser(Long userId) {
-        var tokens = refreshTokenRepository.findAllByUserIdAndRevokedFalse(userId);
-        if (!tokens.isEmpty()) {
-            tokens.forEach(t -> t.setRevoked(true));
-            refreshTokenRepository.saveAll(tokens);
+        int affected = refreshTokenRepository.revokeAllByUserId(userId);
+        if (affected > 0) {
+            log.debug("Revoked {} refresh tokens for user {}", affected, userId);
         }
-        log.debug("Revoked all refresh tokens for user {}", userId);
     }
 }

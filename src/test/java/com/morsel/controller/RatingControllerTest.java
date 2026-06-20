@@ -12,6 +12,7 @@ import com.morsel.dto.response.RatingResponse;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.Role;
 import com.morsel.model.User;
+import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.CustomUserDetailsService;
@@ -49,6 +50,9 @@ class RatingControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private final User user =
             User.builder().id(1L).username("user").role(Role.USER).build();

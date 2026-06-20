@@ -1,11 +1,11 @@
 package com.morsel.security;
 
-import com.morsel.config.logging.AuditLogger;
-import com.morsel.config.logging.AuditLogger.Event;
-import com.morsel.config.logging.AuditLogger.Outcome;
 import com.morsel.constants.AuthConstants;
-import com.morsel.model.Role;
+import com.morsel.logging.AuditLogger;
+import com.morsel.logging.AuditLogger.Event;
+import com.morsel.logging.AuditLogger.Outcome;
 import com.morsel.model.User;
+import com.morsel.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +28,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -41,31 +42,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (token == null) {
                 log.trace("No JWT token found in request");
             } else {
-                Optional<JwtTokenProvider.AccessTokenClaims> claims =
-                        jwtTokenProvider.validateAccessTokenWithClaims(token);
-                if (claims.isPresent()) {
-                    JwtTokenProvider.AccessTokenClaims c = claims.get();
+                Optional<Long> userIdOpt = jwtTokenProvider.validateAccessToken(token);
 
-                    if (!c.enabled() || !c.accountNonLocked()) {
-                        log.warn("User {} is disabled or locked, rejecting JWT", c.userId());
-                        AuditLogger.log(
-                                Event.JWT_REJECTED_DISABLED_LOCKED,
-                                c.userId(),
-                                Outcome.FAILURE,
-                                "enabled=" + c.enabled() + ",accountNonLocked=" + c.accountNonLocked());
+                if (userIdOpt.isPresent()) {
+                    Long userId = userIdOpt.get();
+
+                    User user = userRepository.findById(userId).orElse(null);
+
+                    if (user == null) {
+                        log.warn("User {} not found, rejecting JWT", userId);
                         SecurityContextHolder.clearContext();
                         filterChain.doFilter(request, response);
                         return;
                     }
 
-                    UserPrincipal principal = buildPrincipal(c);
+                    if (!user.isEnabled() || !user.isAccountNonLocked()) {
+                        log.warn("User {} is disabled or locked, rejecting JWT", userId);
+                        AuditLogger.log(
+                                Event.JWT_REJECTED_DISABLED_LOCKED,
+                                userId,
+                                Outcome.FAILURE,
+                                "enabled=" + user.isEnabled() + ",accountNonLocked=" + user.isAccountNonLocked());
+                        SecurityContextHolder.clearContext();
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    UserPrincipal principal = new UserPrincipal(user);
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("Authenticated user {} with JWT", c.userId());
+                    log.debug("Authenticated user {} from DB lookup", userId);
                 }
             }
         } catch (Exception e) {
@@ -74,18 +84,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private UserPrincipal buildPrincipal(JwtTokenProvider.AccessTokenClaims c) {
-        User user = User.builder()
-                .id(c.userId())
-                .username(c.username())
-                .email(c.email())
-                .role(Role.valueOf(c.role()))
-                .enabled(c.enabled())
-                .accountNonLocked(c.accountNonLocked())
-                .build();
-        return new UserPrincipal(user);
     }
 
     private String extractToken(HttpServletRequest request) {

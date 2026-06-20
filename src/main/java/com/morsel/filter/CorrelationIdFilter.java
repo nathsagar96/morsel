@@ -1,4 +1,4 @@
-package com.morsel.config;
+package com.morsel.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

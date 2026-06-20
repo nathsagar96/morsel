@@ -20,6 +20,7 @@ import com.morsel.exception.ForbiddenException;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.Role;
 import com.morsel.model.User;
+import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.CustomUserDetailsService;
@@ -62,6 +63,9 @@ class RecipeControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private final User author =
             User.builder().id(1L).username("author").role(Role.USER).build();
@@ -205,7 +209,7 @@ class RecipeControllerTest {
         mockMvc.perform(put("/api/v1/recipes/100")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Title","instructions":"Steps"}
+                                {"title":"Title","instructions":"Steps","ingredientIds":[1,2]}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(100));
@@ -220,7 +224,7 @@ class RecipeControllerTest {
         mockMvc.perform(put("/api/v1/recipes/100")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Title","instructions":"Steps"}
+                                {"title":"Title","instructions":"Steps","ingredientIds":[1,2]}
                                 """))
                 .andExpect(status().isForbidden());
     }
@@ -234,7 +238,7 @@ class RecipeControllerTest {
         mockMvc.perform(put("/api/v1/recipes/999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"title":"Title","instructions":"Steps"}
+                                {"title":"Title","instructions":"Steps","ingredientIds":[1,2]}
                                 """))
                 .andExpect(status().isNotFound());
     }
@@ -245,7 +249,7 @@ class RecipeControllerTest {
         mockMvc.perform(put("/api/v1/recipes/100")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"instructions":"Steps"}
+                                {"instructions":"Steps","ingredientIds":[1,2]}
                                 """))
                 .andExpect(status().isBadRequest());
     }

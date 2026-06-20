@@ -1,6 +1,7 @@
 package com.morsel.config;
 
 import com.morsel.constants.ApiPaths;
+import com.morsel.filter.CorrelationIdFilter;
 import com.morsel.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

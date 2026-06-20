@@ -1,4 +1,4 @@
-package com.morsel.config.logging;
+package com.morsel.logging;
 
 public final class PiiSanitizer {
 

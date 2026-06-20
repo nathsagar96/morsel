@@ -1,6 +1,6 @@
 package com.morsel.service;
 
-import com.morsel.config.logging.PiiSanitizer;
+import com.morsel.logging.PiiSanitizer;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;

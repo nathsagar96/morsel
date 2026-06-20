@@ -22,16 +22,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
-                    INSERT INTO user_favorite_recipes (user_id, recipe_id)
-                    VALUES (:userId, :recipeId)
-                    ON CONFLICT (user_id, recipe_id) DO NOTHING
-                    """, nativeQuery = true)
+            INSERT INTO user_favorite_recipes (user_id, recipe_id)
+            VALUES (:userId, :recipeId)
+            ON CONFLICT (user_id, recipe_id) DO NOTHING
+            """, nativeQuery = true)
     int addFavorite(@Param("userId") Long userId, @Param("recipeId") Long recipeId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
-                    DELETE FROM user_favorite_recipes
-                    WHERE user_id = :userId AND recipe_id = :recipeId
-                    """, nativeQuery = true)
+            DELETE FROM user_favorite_recipes
+            WHERE user_id = :userId AND recipe_id = :recipeId
+            """, nativeQuery = true)
     int removeFavorite(@Param("userId") Long userId, @Param("recipeId") Long recipeId);
 }

@@ -1,15 +1,15 @@
 package com.morsel.service;
 
-import com.morsel.config.logging.AuditLogger;
-import com.morsel.config.logging.AuditLogger.Event;
-import com.morsel.config.logging.AuditLogger.Outcome;
-import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.dto.request.CreateRecipeRequest;
 import com.morsel.dto.request.UpdateRecipeRequest;
 import com.morsel.dto.response.RecipeResponse;
 import com.morsel.dto.response.RecipeSummaryResponse;
 import com.morsel.exception.ForbiddenException;
 import com.morsel.exception.ResourceNotFoundException;
+import com.morsel.logging.AuditLogger;
+import com.morsel.logging.AuditLogger.Event;
+import com.morsel.logging.AuditLogger.Outcome;
+import com.morsel.logging.PiiSanitizer;
 import com.morsel.mapper.RecipeMapper;
 import com.morsel.model.Ingredient;
 import com.morsel.model.Recipe;

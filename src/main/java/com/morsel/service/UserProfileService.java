@@ -1,8 +1,8 @@
 package com.morsel.service;
 
-import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.ResourceNotFoundException;
+import com.morsel.logging.PiiSanitizer;
 import com.morsel.mapper.UserMapper;
 import com.morsel.model.User;
 import com.morsel.repository.RecipeRepository;

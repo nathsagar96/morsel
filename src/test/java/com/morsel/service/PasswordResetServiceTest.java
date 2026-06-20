@@ -62,7 +62,7 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    @DisplayName("generates token and sends email for existing user")
+    @DisplayName("generates hashed token and sends email for existing user")
     void initiatePasswordReset_withExistingUser_sendsEmail() {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
@@ -71,6 +71,8 @@ class PasswordResetServiceTest {
         ArgumentCaptor<PasswordResetToken> captor = ArgumentCaptor.forClass(PasswordResetToken.class);
         verify(passwordResetTokenRepository).save(captor.capture());
         PasswordResetToken savedToken = captor.getValue();
+        assertThat(savedToken.getTokenHash()).isNotNull();
+        assertThat(savedToken.getTokenHash()).hasSize(64);
         assertThat(savedToken.getUserId()).isEqualTo(1L);
         assertThat(savedToken.getExpiresAt()).isAfter(Instant.now());
         assertThat(savedToken.isUsed()).isFalse();
@@ -89,23 +91,24 @@ class PasswordResetServiceTest {
     }
 
     @Test
-    @DisplayName("resets password with valid token")
+    @DisplayName("resets password with valid token via atomic consumption")
     void resetPassword_withValidToken_resetsPassword() {
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .id(1L)
-                .token("valid-token")
+                .tokenHash("a".repeat(64))
                 .userId(1L)
                 .expiresAt(Instant.now().plus(10, ChronoUnit.MINUTES))
                 .used(false)
                 .build();
-        when(passwordResetTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(resetToken));
+        when(passwordResetTokenRepository.consumeToken(any(String.class), any(Instant.class)))
+                .thenReturn(1);
+        when(passwordResetTokenRepository.findByTokenHash(any(String.class))).thenReturn(Optional.of(resetToken));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(passwordEncoder.encode("newPassword123")).thenReturn("new-encoded-password");
 
         passwordResetService.resetPassword("valid-token", "newPassword123");
 
         assertThat(user.getPassword()).isEqualTo("new-encoded-password");
-        assertThat(resetToken.isUsed()).isTrue();
         verify(userRepository).save(user);
         verify(refreshTokenService).revokeAllForUser(1L);
     }
@@ -113,7 +116,9 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("throws BadRequestException for non-existing token")
     void resetPassword_withInvalidToken_throwsBadRequest() {
-        when(passwordResetTokenRepository.findByToken("bad-token")).thenReturn(Optional.empty());
+        when(passwordResetTokenRepository.consumeToken(any(String.class), any(Instant.class)))
+                .thenReturn(0);
+        when(passwordResetTokenRepository.findByTokenHash(any(String.class))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> passwordResetService.resetPassword("bad-token", "newPassword123"))
                 .isInstanceOf(BadRequestException.class)
@@ -125,12 +130,14 @@ class PasswordResetServiceTest {
     void resetPassword_withUsedToken_throwsBadRequest() {
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .id(1L)
-                .token("used-token")
+                .tokenHash("a".repeat(64))
                 .userId(1L)
                 .expiresAt(Instant.now().plus(10, ChronoUnit.MINUTES))
                 .used(true)
                 .build();
-        when(passwordResetTokenRepository.findByToken("used-token")).thenReturn(Optional.of(resetToken));
+        when(passwordResetTokenRepository.consumeToken(any(String.class), any(Instant.class)))
+                .thenReturn(0);
+        when(passwordResetTokenRepository.findByTokenHash(any(String.class))).thenReturn(Optional.of(resetToken));
 
         assertThatThrownBy(() -> passwordResetService.resetPassword("used-token", "newPassword123"))
                 .isInstanceOf(BadRequestException.class)
@@ -142,12 +149,14 @@ class PasswordResetServiceTest {
     void resetPassword_withExpiredToken_throwsBadRequest() {
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .id(1L)
-                .token("expired-token")
+                .tokenHash("a".repeat(64))
                 .userId(1L)
                 .expiresAt(Instant.now().minus(5, ChronoUnit.MINUTES))
                 .used(false)
                 .build();
-        when(passwordResetTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(resetToken));
+        when(passwordResetTokenRepository.consumeToken(any(String.class), any(Instant.class)))
+                .thenReturn(0);
+        when(passwordResetTokenRepository.findByTokenHash(any(String.class))).thenReturn(Optional.of(resetToken));
 
         assertThatThrownBy(() -> passwordResetService.resetPassword("expired-token", "newPassword123"))
                 .isInstanceOf(BadRequestException.class)
@@ -159,12 +168,14 @@ class PasswordResetServiceTest {
     void resetPassword_withOrphanedToken_throwsNotFound() {
         PasswordResetToken resetToken = PasswordResetToken.builder()
                 .id(1L)
-                .token("valid-token")
+                .tokenHash("a".repeat(64))
                 .userId(999L)
                 .expiresAt(Instant.now().plus(10, ChronoUnit.MINUTES))
                 .used(false)
                 .build();
-        when(passwordResetTokenRepository.findByToken("valid-token")).thenReturn(Optional.of(resetToken));
+        when(passwordResetTokenRepository.consumeToken(any(String.class), any(Instant.class)))
+                .thenReturn(1);
+        when(passwordResetTokenRepository.findByTokenHash(any(String.class))).thenReturn(Optional.of(resetToken));
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> passwordResetService.resetPassword("valid-token", "newPassword123"))

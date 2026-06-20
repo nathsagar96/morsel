@@ -1,6 +1,6 @@
 package com.morsel.service;
 
-import com.morsel.config.logging.PiiSanitizer;
+import com.morsel.logging.PiiSanitizer;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

@@ -1,15 +1,15 @@
 package com.morsel.controller;
 
-import com.morsel.config.logging.AuditLogger;
-import com.morsel.config.logging.AuditLogger.Event;
-import com.morsel.config.logging.AuditLogger.Outcome;
-import com.morsel.config.logging.PiiSanitizer;
 import com.morsel.constants.ApiPaths;
 import com.morsel.constants.ErrorMessages;
 import com.morsel.dto.request.UserStatusRequest;
 import com.morsel.dto.response.RecipeResponse;
 import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.ResourceNotFoundException;
+import com.morsel.logging.AuditLogger;
+import com.morsel.logging.AuditLogger.Event;
+import com.morsel.logging.AuditLogger.Outcome;
+import com.morsel.logging.PiiSanitizer;
 import com.morsel.model.User;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;

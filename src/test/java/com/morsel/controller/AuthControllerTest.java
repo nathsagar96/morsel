@@ -11,6 +11,7 @@ import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
 import com.morsel.exception.BadRequestException;
+import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.service.AuthService;
 import com.morsel.service.CustomUserDetailsService;
@@ -47,6 +48,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     @Test
     @DisplayName("POST /api/v1/auth/signup returns 201 with auth response for valid request")
