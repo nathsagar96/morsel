@@ -64,7 +64,13 @@ public class AuthService {
             throw new DuplicateResourceException("Username or email already exists");
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId());
+        String accessToken = jwtTokenProvider.generateAccessToken(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.isEnabled(),
+                user.isAccountNonLocked());
         String jti = UUID.randomUUID().toString();
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), jti);
         refreshTokenService.create(user.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
@@ -114,7 +120,13 @@ public class AuthService {
                 authenticatedUser.setLockTime(null);
             }
 
-            String accessToken = jwtTokenProvider.generateAccessToken(authenticatedUser.getId());
+            String accessToken = jwtTokenProvider.generateAccessToken(
+                    authenticatedUser.getId(),
+                    authenticatedUser.getUsername(),
+                    authenticatedUser.getEmail(),
+                    authenticatedUser.getRole().name(),
+                    authenticatedUser.isEnabled(),
+                    authenticatedUser.isAccountNonLocked());
             String jti = UUID.randomUUID().toString();
             String refreshToken = jwtTokenProvider.generateRefreshToken(authenticatedUser.getId(), jti);
             refreshTokenService.create(
@@ -152,7 +164,13 @@ public class AuthService {
             return new ForbiddenException("Invalid or expired refresh token");
         });
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.isEnabled(),
+                user.isAccountNonLocked());
         String newJti = UUID.randomUUID().toString();
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), newJti);
         refreshTokenService.create(user.getId(), newJti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));

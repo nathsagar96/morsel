@@ -27,7 +27,7 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecif
     Page<Recipe> findAll(@NonNull Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"author"})
+    @EntityGraph(attributePaths = {"author", "ingredients"})
     Page<Recipe> findAll(@Nullable Specification<Recipe> spec, @NonNull Pageable pageable);
 
     long countByAuthorId(Long authorId);

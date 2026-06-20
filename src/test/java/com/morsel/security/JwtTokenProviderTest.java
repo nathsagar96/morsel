@@ -29,7 +29,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("generates valid access JWT with three parts")
     void generateAccessToken_returnsValidToken() {
-        String token = jwtTokenProvider.generateAccessToken(1L);
+        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "test@example.com", "USER", true, true);
 
         assertThat(token).isNotNull();
         assertThat(token.split("\\.")).hasSize(3);
@@ -47,7 +47,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("returns userId from valid access token via validateAccessToken")
     void validateAccessToken_withValidAccessToken_returnsUserId() {
-        String token = jwtTokenProvider.generateAccessToken(42L);
+        String token = jwtTokenProvider.generateAccessToken(42L, "user42", "u42@example.com", "USER", true, true);
 
         Optional<Long> userId = jwtTokenProvider.validateAccessToken(token);
 
@@ -70,7 +70,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("validateRefreshToken rejects access tokens")
     void validateRefreshToken_withAccessToken_returnsEmpty() {
-        String token = jwtTokenProvider.generateAccessToken(1L);
+        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "test@example.com", "USER", true, true);
 
         Optional<JwtTokenProvider.RefreshTokenClaims> result = jwtTokenProvider.validateRefreshToken(token);
 
@@ -90,8 +90,8 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("returns correct userIds for multiple tokens")
     void validateAccessToken_withDifferentUserIds_returnsCorrectIds() {
-        String token1 = jwtTokenProvider.generateAccessToken(1L);
-        String token2 = jwtTokenProvider.generateAccessToken(100L);
+        String token1 = jwtTokenProvider.generateAccessToken(1L, "user1", "u1@example.com", "USER", true, true);
+        String token2 = jwtTokenProvider.generateAccessToken(100L, "user100", "u100@example.com", "ADMIN", true, true);
 
         assertThat(jwtTokenProvider.validateAccessToken(token1)).hasValue(1L);
         assertThat(jwtTokenProvider.validateAccessToken(token2)).hasValue(100L);
@@ -108,7 +108,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("returns empty for tampered token")
     void validateAccessToken_withTamperedToken_returnsEmpty() {
-        String token = jwtTokenProvider.generateAccessToken(1L);
+        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "test@example.com", "USER", true, true);
         String tampered = token.substring(0, token.length() - 4) + "xxxx";
 
         Optional<Long> userId = jwtTokenProvider.validateAccessToken(tampered);
@@ -137,7 +137,7 @@ class JwtTokenProviderTest {
     void validateAccessToken_withExpiredAccessToken_returnsEmpty() throws InterruptedException {
         JwtProperties shortLived = new JwtProperties(TEST_SECRET, 1, REFRESH_EXPIRATION_MS, ISSUER, AUDIENCE);
         JwtTokenProvider shortLivedProvider = new JwtTokenProvider(shortLived);
-        String token = shortLivedProvider.generateAccessToken(1L);
+        String token = shortLivedProvider.generateAccessToken(1L, "testuser", "test@example.com", "USER", true, true);
 
         Thread.sleep(5);
 

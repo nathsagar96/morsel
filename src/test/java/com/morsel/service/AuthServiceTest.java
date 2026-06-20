@@ -3,6 +3,8 @@ package com.morsel.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -99,7 +101,8 @@ class AuthServiceTest {
         when(passwordEncoder.encode("password123")).thenReturn("encoded-password");
         when(userMapper.toEntity(signUpRequest, "encoded-password", Role.USER)).thenReturn(user);
         when(userRepository.save(user)).thenReturn(user);
-        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
+        when(jwtTokenProvider.generateAccessToken(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn("test-token");
         when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "newuser", "new@example.com"));
@@ -161,7 +164,8 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(new UsernamePasswordAuthenticationToken("testuser", "password")))
                 .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(userPrincipal);
-        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
+        when(jwtTokenProvider.generateAccessToken(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn("test-token");
         when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "newuser", "new@example.com"));
@@ -231,7 +235,8 @@ class AuthServiceTest {
         UserPrincipal userPrincipal = new UserPrincipal(user);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(userPrincipal);
-        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
+        when(jwtTokenProvider.generateAccessToken(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn("test-token");
         when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "testuser", "test@example.com"));
@@ -267,7 +272,8 @@ class AuthServiceTest {
         UserPrincipal userPrincipal = new UserPrincipal(user);
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(userPrincipal);
-        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
+        when(jwtTokenProvider.generateAccessToken(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn("test-token");
         when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
         when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
                 .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "testuser", "test@example.com"));
@@ -287,7 +293,8 @@ class AuthServiceTest {
                 1L, "jti-old", Instant.now().plusSeconds(3600));
         when(jwtTokenProvider.validateRefreshToken("valid-refresh-token")).thenReturn(Optional.of(claims));
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("new-access-token");
+        when(jwtTokenProvider.generateAccessToken(anyLong(), any(), any(), any(), anyBoolean(), anyBoolean()))
+                .thenReturn("new-access-token");
         when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("new-refresh-token");
         when(userMapper.toAuthResponse(user, "new-access-token", "new-refresh-token"))
                 .thenReturn(AuthResponse.of("new-access-token", "new-refresh-token", 1L, "newuser", "new@example.com"));
