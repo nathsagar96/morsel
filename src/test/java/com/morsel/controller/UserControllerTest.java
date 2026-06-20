@@ -3,6 +3,7 @@ package com.morsel.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -10,12 +11,14 @@ import com.morsel.dto.response.UserProfileResponse;
 import com.morsel.exception.ResourceNotFoundException;
 import com.morsel.model.Role;
 import com.morsel.model.User;
+import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.CustomUserDetailsService;
 import com.morsel.service.FavoriteService;
 import com.morsel.service.UserProfileService;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,7 +28,9 @@ import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -45,6 +50,9 @@ class UserControllerTest {
 
     @MockitoBean
     private FavoriteService favoriteService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -99,5 +107,34 @@ class UserControllerTest {
         mockMvc.perform(get("/api/v1/users/me/favorites"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/users/{id}/status disables user when admin")
+    void updateUserStatus_whenAdmin_disablesUser() throws Exception {
+        User targetUser = User.builder()
+                .id(2L)
+                .username("targetuser")
+                .role(Role.USER)
+                .enabled(true)
+                .build();
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetUser));
+
+        // Clear regular user auth and set admin auth
+        SecurityContextHolder.clearContext();
+        User adminUser =
+                User.builder().id(1L).username("admin").role(Role.ADMIN).build();
+        UserPrincipal adminPrincipal = new UserPrincipal(adminUser);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(
+                        adminPrincipal, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+
+        mockMvc.perform(patch("/api/v1/users/2/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"enabled":false}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").exists());
     }
 }

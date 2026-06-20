@@ -11,10 +11,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.morsel.config.JwtProperties;
+import com.morsel.config.LockoutProperties;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
+import com.morsel.exception.AccountDisabledException;
+import com.morsel.exception.AccountLockedException;
 import com.morsel.exception.DuplicateResourceException;
 import com.morsel.exception.ForbiddenException;
 import com.morsel.mapper.UserMapper;
@@ -34,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -62,6 +66,9 @@ class AuthServiceTest {
 
     @Mock
     private JwtProperties jwtProperties;
+
+    @Mock
+    private LockoutProperties lockoutProperties;
 
     @InjectMocks
     private AuthService authService;
@@ -148,6 +155,7 @@ class AuthServiceTest {
     @DisplayName("authenticates user and returns auth response with token")
     void authenticate_withValidCredentials_returnsAuthResponse() {
         when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
         Authentication authentication = mock(Authentication.class);
         UserPrincipal userPrincipal = new UserPrincipal(user);
         when(authenticationManager.authenticate(new UsernamePasswordAuthenticationToken("testuser", "password")))
@@ -165,6 +173,109 @@ class AuthServiceTest {
         assertThat(response.username()).isEqualTo("newuser");
         verify(authenticationManager).authenticate(any());
         verify(refreshTokenService).create(eq(1L), any(String.class), any(Instant.class));
+    }
+
+    @Test
+    @DisplayName("increments failed attempts on bad credentials")
+    void authenticate_withBadCredentials_incrementsFailedAttempts() {
+        when(lockoutProperties.maxFailedAttempts()).thenReturn(5);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
+
+        assertThatThrownBy(() -> authService.authenticate(loginRequest)).isInstanceOf(BadCredentialsException.class);
+
+        assertThat(user.getFailedAttempts()).isEqualTo(1);
+        assertThat(user.isAccountNonLocked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("locks account after max failed attempts")
+    void authenticate_withMaxFailedAttempts_locksAccount() {
+        when(lockoutProperties.maxFailedAttempts()).thenReturn(3);
+        user.setFailedAttempts(2);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("Bad credentials"));
+
+        assertThatThrownBy(() -> authService.authenticate(loginRequest)).isInstanceOf(BadCredentialsException.class);
+
+        assertThat(user.getFailedAttempts()).isEqualTo(3);
+        assertThat(user.isAccountNonLocked()).isFalse();
+        assertThat(user.getLockTime()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("throws AccountLockedException when account is locked")
+    void authenticate_whenAccountLocked_throwsAccountLockedException() {
+        when(lockoutProperties.lockDurationMinutes()).thenReturn(15);
+        user.setAccountNonLocked(false);
+        user.setLockTime(Instant.now());
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.authenticate(loginRequest))
+                .isInstanceOf(AccountLockedException.class)
+                .hasMessageContaining("locked");
+
+        verify(authenticationManager, never()).authenticate(any());
+    }
+
+    @Test
+    @DisplayName("auto-unlocks account when lock duration has expired")
+    void authenticate_whenLockExpired_unlocksAccount() {
+        when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
+        when(lockoutProperties.lockDurationMinutes()).thenReturn(15);
+        user.setAccountNonLocked(false);
+        user.setLockTime(Instant.now().minus(20, java.time.temporal.ChronoUnit.MINUTES));
+        user.setFailedAttempts(5);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        Authentication authentication = mock(Authentication.class);
+        UserPrincipal userPrincipal = new UserPrincipal(user);
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(userPrincipal);
+        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
+        when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
+        when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
+                .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "testuser", "test@example.com"));
+
+        AuthResponse response = authService.authenticate(loginRequest);
+
+        assertThat(response.token()).isEqualTo("test-token");
+        assertThat(user.isAccountNonLocked()).isTrue();
+        assertThat(user.getFailedAttempts()).isEqualTo(0);
+        assertThat(user.getLockTime()).isNull();
+    }
+
+    @Test
+    @DisplayName("throws AccountDisabledException when account is disabled")
+    void authenticate_whenAccountDisabled_throwsAccountDisabledException() {
+        user.setEnabled(false);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.authenticate(loginRequest))
+                .isInstanceOf(AccountDisabledException.class)
+                .hasMessageContaining("disabled");
+
+        verify(authenticationManager, never()).authenticate(any());
+    }
+
+    @Test
+    @DisplayName("resets failed attempts on successful login")
+    void authenticate_withSuccessfulLogin_resetsFailedAttempts() {
+        when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
+        user.setFailedAttempts(3);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        Authentication authentication = mock(Authentication.class);
+        UserPrincipal userPrincipal = new UserPrincipal(user);
+        when(authenticationManager.authenticate(any())).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(userPrincipal);
+        when(jwtTokenProvider.generateAccessToken(1L)).thenReturn("test-token");
+        when(jwtTokenProvider.generateRefreshToken(eq(1L), any(String.class))).thenReturn("test-refresh");
+        when(userMapper.toAuthResponse(user, "test-token", "test-refresh"))
+                .thenReturn(AuthResponse.of("test-token", "test-refresh", 1L, "testuser", "test@example.com"));
+
+        authService.authenticate(loginRequest);
+
+        assertThat(user.getFailedAttempts()).isEqualTo(0);
+        assertThat(user.getLockTime()).isNull();
     }
 
     @Test

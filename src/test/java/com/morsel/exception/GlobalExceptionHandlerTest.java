@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -61,6 +63,30 @@ class GlobalExceptionHandlerTest {
         assertThat(result.getStatus()).isEqualTo(403);
         assertThat(result.getTitle()).isEqualTo("Forbidden");
         assertThat(result.getDetail()).isEqualTo("Access denied");
+    }
+
+    @Test
+    @DisplayName("handles LockedException as 429 Too Many Requests")
+    void handleLocked_returns429() {
+        LockedException ex = new LockedException("Account is locked");
+
+        ProblemDetail result = handler.handleLocked(ex);
+
+        assertThat(result.getStatus()).isEqualTo(429);
+        assertThat(result.getTitle()).isEqualTo("Too Many Requests");
+        assertThat(result.getDetail()).contains("locked");
+    }
+
+    @Test
+    @DisplayName("handles DisabledException as 403 Forbidden")
+    void handleDisabled_returns403() {
+        DisabledException ex = new DisabledException("Account is disabled");
+
+        ProblemDetail result = handler.handleDisabled(ex);
+
+        assertThat(result.getStatus()).isEqualTo(403);
+        assertThat(result.getTitle()).isEqualTo("Forbidden");
+        assertThat(result.getDetail()).contains("disabled");
     }
 
     @Test

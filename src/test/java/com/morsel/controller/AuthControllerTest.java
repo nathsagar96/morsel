@@ -10,9 +10,11 @@ import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
+import com.morsel.exception.BadRequestException;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.service.AuthService;
 import com.morsel.service.CustomUserDetailsService;
+import com.morsel.service.PasswordResetService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private PasswordResetService passwordResetService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
@@ -185,6 +190,85 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"refreshToken":""}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password returns 200 with success message")
+    void forgotPassword_withValidEmail_returns200() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"test@example.com"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password returns 400 for invalid email")
+    void forgotPassword_withInvalidEmail_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email":"invalid"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/forgot-password returns 400 for missing email")
+    void forgotPassword_withMissingEmail_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password returns 200 with success message")
+    void resetPassword_withValidToken_returns200() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"valid-token","newPassword":"newPassword123"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password returns 400 for invalid token")
+    void resetPassword_withInvalidToken_returns400() throws Exception {
+        org.mockito.Mockito.doThrow(new BadRequestException("Invalid or expired reset token"))
+                .when(passwordResetService)
+                .resetPassword("bad-token", "newPassword123");
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"bad-token","newPassword":"newPassword123"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password returns 400 for missing fields")
+    void resetPassword_withMissingFields_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/auth/reset-password returns 400 for short password")
+    void resetPassword_withShortPassword_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"token":"valid-token","newPassword":"ab"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

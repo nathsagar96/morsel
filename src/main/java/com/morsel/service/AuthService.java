@@ -1,10 +1,13 @@
 package com.morsel.service;
 
 import com.morsel.config.JwtProperties;
+import com.morsel.config.LockoutProperties;
 import com.morsel.dto.request.LoginRequest;
 import com.morsel.dto.request.RefreshTokenRequest;
 import com.morsel.dto.request.SignUpRequest;
 import com.morsel.dto.response.AuthResponse;
+import com.morsel.exception.AccountDisabledException;
+import com.morsel.exception.AccountLockedException;
 import com.morsel.exception.DuplicateResourceException;
 import com.morsel.exception.ForbiddenException;
 import com.morsel.mapper.UserMapper;
@@ -13,11 +16,14 @@ import com.morsel.model.User;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,6 +42,7 @@ public class AuthService {
     private final UserMapper userMapper;
     private final RefreshTokenService refreshTokenService;
     private final JwtProperties jwtProperties;
+    private final LockoutProperties lockoutProperties;
 
     @Transactional
     public AuthResponse register(SignUpRequest request) {
@@ -60,26 +67,74 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId());
         String jti = UUID.randomUUID().toString();
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), jti);
-        refreshTokenService.create(
-                user.getId(), jti, java.time.Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
+        refreshTokenService.create(user.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
         log.debug("User registered: {}", request.username());
         return userMapper.toAuthResponse(user, accessToken, refreshToken);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadCredentialsException.class)
     public AuthResponse authenticate(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.usernameOrEmail(), request.password()));
+        User user = userRepository
+                .findByUsername(request.usernameOrEmail())
+                .or(() -> userRepository.findByEmail(request.usernameOrEmail()))
+                .orElse(null);
 
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        User user = principal.user();
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId());
-        String jti = UUID.randomUUID().toString();
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), jti);
-        refreshTokenService.create(
-                user.getId(), jti, java.time.Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
-        log.debug("User signed in: {}", user.getUsername());
-        return userMapper.toAuthResponse(user, accessToken, refreshToken);
+        if (user != null) {
+            if (!user.isAccountNonLocked()) {
+                if (user.getLockTime() != null
+                        && user.getLockTime()
+                                .plus(lockoutProperties.lockDurationMinutes(), ChronoUnit.MINUTES)
+                                .isBefore(Instant.now())) {
+                    log.debug("Lock duration expired for user {}, unlocking", user.getUsername());
+                    user.setAccountNonLocked(true);
+                    user.setFailedAttempts(0);
+                    user.setLockTime(null);
+                } else {
+                    log.debug("Account locked for user {}", user.getUsername());
+                    throw new AccountLockedException("Too many failed login attempts. Account is locked for %d minutes"
+                            .formatted(lockoutProperties.lockDurationMinutes()));
+                }
+            }
+            if (!user.isEnabled()) {
+                log.debug("Account disabled for user {}", user.getUsername());
+                throw new AccountDisabledException("Account is disabled");
+            }
+        }
+
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.usernameOrEmail(), request.password()));
+
+            UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+            User authenticatedUser = principal.user();
+
+            // Successful login — reset failed attempts
+            if (authenticatedUser.getFailedAttempts() > 0) {
+                authenticatedUser.setFailedAttempts(0);
+                authenticatedUser.setLockTime(null);
+            }
+
+            String accessToken = jwtTokenProvider.generateAccessToken(authenticatedUser.getId());
+            String jti = UUID.randomUUID().toString();
+            String refreshToken = jwtTokenProvider.generateRefreshToken(authenticatedUser.getId(), jti);
+            refreshTokenService.create(
+                    authenticatedUser.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
+            log.debug("User signed in: {}", authenticatedUser.getUsername());
+            return userMapper.toAuthResponse(authenticatedUser, accessToken, refreshToken);
+        } catch (BadCredentialsException e) {
+            if (user != null) {
+                int newAttempts = user.getFailedAttempts() + 1;
+                user.setFailedAttempts(newAttempts);
+                if (newAttempts >= lockoutProperties.maxFailedAttempts()) {
+                    user.setAccountNonLocked(false);
+                    user.setLockTime(Instant.now());
+                    log.warn("Account locked after {} failed attempts for user {}", newAttempts, user.getUsername());
+                } else {
+                    log.debug("Failed login attempt {} for user {}", newAttempts, user.getUsername());
+                }
+            }
+            throw e;
+        }
     }
 
     public AuthResponse refreshAccessToken(RefreshTokenRequest request) {
@@ -100,8 +155,7 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId());
         String newJti = UUID.randomUUID().toString();
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), newJti);
-        refreshTokenService.create(
-                user.getId(), newJti, java.time.Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
+        refreshTokenService.create(user.getId(), newJti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
         log.debug("Tokens refreshed for user {}", user.getUsername());
         return userMapper.toAuthResponse(user, newAccessToken, newRefreshToken);
     }

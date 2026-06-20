@@ -72,9 +72,25 @@ class UserPrincipalTest {
     }
 
     @Test
-    @DisplayName("account is not locked")
-    void isAccountNonLocked_returnsTrue() {
+    @DisplayName("returns true when account is not locked")
+    void isAccountNonLocked_whenNotLocked_returnsTrue() {
         assertThat(userPrincipal.isAccountNonLocked()).isTrue();
+    }
+
+    @Test
+    @DisplayName("returns false when account is locked")
+    void isAccountNonLocked_whenLocked_returnsFalse() {
+        User lockedUser = User.builder()
+                .id(2L)
+                .username("lockeduser")
+                .email("locked@example.com")
+                .password("password")
+                .role(Role.USER)
+                .accountNonLocked(false)
+                .build();
+        UserPrincipal lockedPrincipal = new UserPrincipal(lockedUser);
+
+        assertThat(lockedPrincipal.isAccountNonLocked()).isFalse();
     }
 
     @Test
@@ -84,8 +100,24 @@ class UserPrincipalTest {
     }
 
     @Test
-    @DisplayName("account is enabled")
-    void isEnabled_returnsTrue() {
+    @DisplayName("returns true when account is enabled")
+    void isEnabled_whenEnabled_returnsTrue() {
         assertThat(userPrincipal.isEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("returns false when account is disabled")
+    void isEnabled_whenDisabled_returnsFalse() {
+        User disabledUser = User.builder()
+                .id(2L)
+                .username("disableduser")
+                .email("disabled@example.com")
+                .password("password")
+                .role(Role.USER)
+                .enabled(false)
+                .build();
+        UserPrincipal disabledPrincipal = new UserPrincipal(disabledUser);
+
+        assertThat(disabledPrincipal.isEnabled()).isFalse();
     }
 }

@@ -23,6 +23,17 @@ spring:
     web:
       pageable:
         max-page-size: 50
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
 
 app:
   jwt:
@@ -38,6 +49,10 @@ app:
     allowed-headers: ${CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,X-Requested-With}
   storage:
     upload-dir: ${APP_UPLOAD_DIR:uploads}
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  lockout:
+    max-failed-attempts: ${LOCKOUT_MAX_FAILED_ATTEMPTS:5}
+    lock-duration-minutes: ${LOCKOUT_LOCK_DURATION_MINUTES:15}
 
 management:
   endpoints:
