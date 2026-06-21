@@ -1,4 +1,0 @@
-/Users/sagar/Developer/morsel/AGENTS.md
-/Users/sagar/Developer/morsel/compose.yaml
-/Users/sagar/Developer/morsel/src/main/resources/application-prod.yaml
-/Users/sagar/Developer/morsel/src/main/resources/application.yaml
