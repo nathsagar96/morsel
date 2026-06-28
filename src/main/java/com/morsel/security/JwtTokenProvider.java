@@ -30,7 +30,8 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.secret()));
     }
 
-    public String generateAccessToken(Long userId, String username, String email) {
+    public String generateAccessToken(
+            Long userId, String username, String role, boolean enabled, boolean accountNonLocked) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtProperties.expirationMs());
 
@@ -39,7 +40,9 @@ public class JwtTokenProvider {
                 .subject(userId.toString())
                 .claim(CLAIM_TYPE, TOKEN_TYPE_ACCESS)
                 .claim("username", username)
-                .claim("email", email)
+                .claim("role", role)
+                .claim("enabled", enabled)
+                .claim("accountNonLocked", accountNonLocked)
                 .issuer(jwtProperties.issuer())
                 .audience()
                 .add(jwtProperties.audience())
@@ -69,14 +72,19 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public Optional<Long> validateAccessToken(String token) {
+    public Optional<AccessTokenClaims> extractAccessTokenClaims(String token) {
         try {
             Claims claims = parseToken(token);
             if (!TOKEN_TYPE_ACCESS.equals(claims.get(CLAIM_TYPE, String.class))) {
                 log.debug("Token is not an access token");
                 return Optional.empty();
             }
-            return Optional.of(Long.parseLong(claims.getSubject()));
+            return Optional.of(new AccessTokenClaims(
+                    Long.parseLong(claims.getSubject()),
+                    claims.get("username", String.class),
+                    claims.get("role", String.class),
+                    claims.get("enabled", Boolean.class),
+                    claims.get("accountNonLocked", Boolean.class)));
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("Invalid access JWT: {}", e.getMessage());
             return Optional.empty();
@@ -112,6 +120,9 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+    public record AccessTokenClaims(
+            Long userId, String username, String role, boolean enabled, boolean accountNonLocked) {}
 
     public record RefreshTokenClaims(Long userId, String jti, Instant expiresAt) {}
 }

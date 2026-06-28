@@ -20,10 +20,4 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
             ON CONFLICT (user_id, recipe_id) DO UPDATE SET score = :score
             """, nativeQuery = true)
     void upsert(@Param("score") Integer score, @Param("userId") Long userId, @Param("recipeId") Long recipeId);
-
-    @Query("SELECT AVG(r.score) FROM Rating r WHERE r.recipe.id = :recipeId")
-    Optional<Double> findAverageScoreByRecipeId(@Param("recipeId") Long recipeId);
-
-    @Query("SELECT COUNT(r) FROM Rating r WHERE r.recipe.id = :recipeId")
-    Integer findCountByRecipeId(@Param("recipeId") Long recipeId);
 }

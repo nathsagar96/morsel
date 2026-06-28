@@ -5,9 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.morsel.model.Role;
-import com.morsel.model.User;
-import com.morsel.repository.UserRepository;
+import com.morsel.security.JwtTokenProvider.AccessTokenClaims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
@@ -31,9 +29,6 @@ class JwtAuthenticationFilterTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
-    @Mock
-    private UserRepository userRepository;
-
     @InjectMocks
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -55,19 +50,12 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("sets authentication for valid JWT and active user")
-    void doFilterInternal_withValidTokenAndActiveUser_setsAuthentication() throws ServletException, IOException {
+    @DisplayName("sets authentication for valid JWT with active user claims")
+    void doFilterInternal_withValidTokenAndActiveClaims_setsAuthentication() throws ServletException, IOException {
         String token = "valid-token";
         request.addHeader("Authorization", "Bearer " + token);
-        User user = User.builder()
-                .id(1L)
-                .username("testuser")
-                .email("test@example.com")
-                .password("encoded")
-                .role(Role.USER)
-                .build();
-        when(jwtTokenProvider.validateAccessToken(token)).thenReturn(Optional.of(1L));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        AccessTokenClaims claims = new AccessTokenClaims(1L, "testuser", "USER", true, true);
+        when(jwtTokenProvider.extractAccessTokenClaims(token)).thenReturn(Optional.of(claims));
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
@@ -84,20 +72,12 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("rejects JWT for disabled user")
-    void doFilterInternal_withDisabledUser_clearsSecurityContext() throws ServletException, IOException {
+    @DisplayName("rejects JWT for disabled user claims")
+    void doFilterInternal_withDisabledClaims_clearsSecurityContext() throws ServletException, IOException {
         String token = "valid-token";
         request.addHeader("Authorization", "Bearer " + token);
-        User user = User.builder()
-                .id(1L)
-                .username("testuser")
-                .email("test@example.com")
-                .password("encoded")
-                .role(Role.USER)
-                .enabled(false)
-                .build();
-        when(jwtTokenProvider.validateAccessToken(token)).thenReturn(Optional.of(1L));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        AccessTokenClaims claims = new AccessTokenClaims(1L, "testuser", "USER", false, true);
+        when(jwtTokenProvider.extractAccessTokenClaims(token)).thenReturn(Optional.of(claims));
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
@@ -106,34 +86,12 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("rejects JWT for locked user")
-    void doFilterInternal_withLockedUser_clearsSecurityContext() throws ServletException, IOException {
+    @DisplayName("rejects JWT for locked user claims")
+    void doFilterInternal_withLockedClaims_clearsSecurityContext() throws ServletException, IOException {
         String token = "valid-token";
         request.addHeader("Authorization", "Bearer " + token);
-        User user = User.builder()
-                .id(1L)
-                .username("testuser")
-                .email("test@example.com")
-                .password("encoded")
-                .role(Role.USER)
-                .accountNonLocked(false)
-                .build();
-        when(jwtTokenProvider.validateAccessToken(token)).thenReturn(Optional.of(1L));
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
-        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(filterChain).doFilter(request, response);
-    }
-
-    @Test
-    @DisplayName("rejects JWT when user not found in DB")
-    void doFilterInternal_withDeletedUser_clearsSecurityContext() throws ServletException, IOException {
-        String token = "valid-token";
-        request.addHeader("Authorization", "Bearer " + token);
-        when(jwtTokenProvider.validateAccessToken(token)).thenReturn(Optional.of(1L));
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+        AccessTokenClaims claims = new AccessTokenClaims(1L, "testuser", "USER", true, false);
+        when(jwtTokenProvider.extractAccessTokenClaims(token)).thenReturn(Optional.of(claims));
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
@@ -146,7 +104,7 @@ class JwtAuthenticationFilterTest {
     void doFilterInternal_withInvalidToken_clearsSecurityContext() throws ServletException, IOException {
         String token = "invalid-token";
         request.addHeader("Authorization", "Bearer " + token);
-        when(jwtTokenProvider.validateAccessToken(token)).thenReturn(Optional.empty());
+        when(jwtTokenProvider.extractAccessTokenClaims(token)).thenReturn(Optional.empty());
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 

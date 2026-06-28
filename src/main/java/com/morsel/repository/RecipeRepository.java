@@ -19,15 +19,15 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecif
     @EntityGraph(attributePaths = {"author", "ingredients"})
     Optional<Recipe> findWithDetailsById(Long id);
 
-    @EntityGraph(attributePaths = {"author"})
+    @EntityGraph(attributePaths = {"author", "ingredients"})
     Page<Recipe> findByFavoritedBy_Id(Long userId, org.springframework.data.domain.Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"author"})
+    @EntityGraph(attributePaths = {"author", "ingredients"})
     Page<Recipe> findAll(@NonNull Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"author"})
+    @EntityGraph(attributePaths = {"author", "ingredients"})
     Page<Recipe> findAll(@Nullable Specification<Recipe> spec, @NonNull Pageable pageable);
 
     long countByAuthorId(Long authorId);

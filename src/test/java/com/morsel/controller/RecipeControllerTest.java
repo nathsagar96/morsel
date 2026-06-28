@@ -154,8 +154,8 @@ class RecipeControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/recipes filters by ingredients")
-    void findAll_withIngredients_returnsFilteredResults() throws Exception {
+    @DisplayName("GET /api/v1/recipes filters by any ingredient")
+    void findAll_withAnyIngredient_returnsFilteredResults() throws Exception {
         when(recipeService.findAll(any(), eq(List.of(1L, 2L)), any()))
                 .thenReturn(new PageImpl<>(List.of(recipeSummaryResponse)));
 

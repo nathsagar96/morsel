@@ -80,7 +80,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGeneric(Exception ex) {
         String correlationId = MDC.get(CORRELATION_ID_KEY);
-        log.error("Unexpected error [correlationId={}", correlationId, ex);
+        log.error("Unexpected error [correlationId={}]", correlationId, ex);
         return toProblemDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorMessages.UNEXPECTED_ERROR,

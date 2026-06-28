@@ -4,8 +4,7 @@ import com.morsel.constants.AuthConstants;
 import com.morsel.logging.AuditLogger;
 import com.morsel.logging.AuditLogger.Event;
 import com.morsel.logging.AuditLogger.Outcome;
-import com.morsel.model.User;
-import com.morsel.repository.UserRepository;
+import com.morsel.security.JwtTokenProvider.AccessTokenClaims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,7 +27,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -42,40 +40,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (token == null) {
                 log.trace("No JWT token found in request");
             } else {
-                Optional<Long> userIdOpt = jwtTokenProvider.validateAccessToken(token);
+                Optional<AccessTokenClaims> claimsOpt = jwtTokenProvider.extractAccessTokenClaims(token);
 
-                if (userIdOpt.isPresent()) {
-                    Long userId = userIdOpt.get();
+                if (claimsOpt.isPresent()) {
+                    AccessTokenClaims claims = claimsOpt.get();
 
-                    User user = userRepository.findById(userId).orElse(null);
-
-                    if (user == null) {
-                        log.warn("User {} not found, rejecting JWT", userId);
-                        SecurityContextHolder.clearContext();
-                        filterChain.doFilter(request, response);
-                        return;
-                    }
-
-                    if (!user.isEnabled() || !user.isAccountNonLocked()) {
-                        log.warn("User {} is disabled or locked, rejecting JWT", userId);
+                    if (!claims.enabled() || !claims.accountNonLocked()) {
+                        log.warn("User {} is disabled or locked, rejecting JWT", claims.userId());
                         AuditLogger.log(
                                 Event.JWT_REJECTED_DISABLED_LOCKED,
-                                userId,
+                                claims.userId(),
                                 Outcome.FAILURE,
-                                "enabled=" + user.isEnabled() + ",accountNonLocked=" + user.isAccountNonLocked());
+                                "enabled=" + claims.enabled() + ",accountNonLocked=" + claims.accountNonLocked());
                         SecurityContextHolder.clearContext();
                         filterChain.doFilter(request, response);
                         return;
                     }
 
-                    UserPrincipal principal = new UserPrincipal(user);
+                    UserPrincipal principal = UserPrincipal.fromClaims(claims);
 
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.debug("Authenticated user {} from DB lookup", userId);
+                    log.debug("Authenticated user {} from JWT claims", claims.userId());
                 }
             }
         } catch (Exception e) {

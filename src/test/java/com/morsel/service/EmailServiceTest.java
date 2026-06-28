@@ -4,7 +4,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.morsel.config.AppProperties;
-import jakarta.mail.MessagingException;
+import com.morsel.config.PasswordResetProperties;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +25,9 @@ class EmailServiceTest {
     private AppProperties appProperties;
 
     @Mock
+    private PasswordResetProperties passwordResetProperties;
+
+    @Mock
     private MimeMessage mimeMessage;
 
     @InjectMocks
@@ -32,8 +35,9 @@ class EmailServiceTest {
 
     @Test
     @DisplayName("sends password reset email")
-    void sendPasswordResetEmail_sendsMail() throws MessagingException {
+    void sendPasswordResetEmail_sendsMail() {
         when(appProperties.baseUrl()).thenReturn("http://localhost:3000");
+        when(passwordResetProperties.tokenExpiryMinutes()).thenReturn(15);
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
 
         emailService.sendPasswordResetEmail("test@example.com", "reset-token-123");

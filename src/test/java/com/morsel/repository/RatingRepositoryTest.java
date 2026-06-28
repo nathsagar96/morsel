@@ -90,59 +90,18 @@ class RatingRepositoryTest {
         ratingRepository.upsert(2, user.getId(), recipe.getId());
         ratingRepository.upsert(5, user.getId(), recipe.getId());
 
-        assertThat(ratingRepository.findCountByRecipeId(recipe.getId())).isEqualTo(1);
         Optional<Rating> result = ratingRepository.findByUserIdAndRecipeId(user.getId(), recipe.getId());
         assertThat(result).isPresent();
         assertThat(result.get().getScore()).isEqualTo(5);
     }
 
     @Test
-    @DisplayName("calculates average score across multiple ratings")
-    void findAverageScoreByRecipeId_returnsCorrectAverage() {
-        User user2 = userRepository.save(User.builder()
-                .username("rater2")
-                .email("rater2@example.com")
-                .password("encoded")
-                .role(Role.USER)
-                .build());
+    @DisplayName("inserts a new rating via upsert")
+    void upsert_insertsNewRating2() {
+        ratingRepository.upsert(5, user.getId(), recipe.getId());
 
-        ratingRepository.upsert(3, user.getId(), recipe.getId());
-        ratingRepository.upsert(5, user2.getId(), recipe.getId());
-
-        Optional<Double> avg = ratingRepository.findAverageScoreByRecipeId(recipe.getId());
-        assertThat(avg).isPresent();
-        assertThat(avg.get()).isEqualTo(4.0);
-    }
-
-    @Test
-    @DisplayName("returns empty average when no ratings exist")
-    void findAverageScoreByRecipeId_whenNoRatings_returnsEmpty() {
-        Optional<Double> avg = ratingRepository.findAverageScoreByRecipeId(recipe.getId());
-
-        assertThat(avg).isEmpty();
-    }
-
-    @Test
-    @DisplayName("counts ratings for a recipe")
-    void findCountByRecipeId_returnsCorrectCount() {
-        User user2 = userRepository.save(User.builder()
-                .username("rater2")
-                .email("rater2@example.com")
-                .password("encoded")
-                .role(Role.USER)
-                .build());
-
-        ratingRepository.upsert(3, user.getId(), recipe.getId());
-        ratingRepository.upsert(5, user2.getId(), recipe.getId());
-
-        assertThat(ratingRepository.findCountByRecipeId(recipe.getId())).isEqualTo(2);
-    }
-
-    @Test
-    @DisplayName("returns zero count when no ratings")
-    void findCountByRecipeId_whenNoRatings_returnsZero() {
-        Integer count = ratingRepository.findCountByRecipeId(recipe.getId());
-
-        assertThat(count).isZero();
+        Optional<Rating> result = ratingRepository.findByUserIdAndRecipeId(user.getId(), recipe.getId());
+        assertThat(result).isPresent();
+        assertThat(result.get().getScore()).isEqualTo(5);
     }
 }

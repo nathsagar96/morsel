@@ -187,7 +187,7 @@ class RecipeRepositoryTest {
                 .ingredients(List.of(tomato, basil))
                 .build());
 
-        Specification<Recipe> spec = RecipeSpecification.withIngredients(List.of(tomato.getId()));
+        Specification<Recipe> spec = RecipeSpecification.withAnyIngredient(List.of(tomato.getId()));
         Page<Recipe> page = recipeRepository.findAll(spec, PageRequest.of(0, 10));
 
         assertThat(page.getContent()).hasSize(1);
@@ -206,7 +206,7 @@ class RecipeRepositoryTest {
                 .ingredients(List.of(tomato, basil))
                 .build());
 
-        Specification<Recipe> spec = RecipeSpecification.withIngredients(List.of(onion.getId()));
+        Specification<Recipe> spec = RecipeSpecification.withAnyIngredient(List.of(onion.getId()));
         Page<Recipe> page = recipeRepository.findAll(spec, PageRequest.of(0, 10));
 
         assertThat(page.getContent()).isEmpty();

@@ -20,6 +20,7 @@ import com.morsel.model.User;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.JwtTokenProvider;
 import com.morsel.security.UserPrincipal;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -37,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -85,7 +87,8 @@ public class AuthService {
             throw new DuplicateResourceException("Username or email already exists");
         }
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), user.getEmail());
+        String accessToken = jwtTokenProvider.generateAccessToken(
+                user.getId(), user.getUsername(), user.getRole().name(), user.isEnabled(), user.isAccountNonLocked());
         String jti = UUID.randomUUID().toString();
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), jti);
         refreshTokenService.create(user.getId(), jti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));
@@ -122,6 +125,7 @@ public class AuthService {
                     user.setAccountNonLocked(true);
                     user.setFailedAttempts(0);
                     user.setLockTime(null);
+                    userRepository.save(user);
                 } else {
                     log.debug("Account locked for user {}", PiiSanitizer.sanitizeUsername(user.getUsername()));
                     throw new AccountLockedException("Too many failed login attempts. Account is locked for %d minutes"
@@ -145,10 +149,15 @@ public class AuthService {
             if (authenticatedUser.getFailedAttempts() > 0) {
                 authenticatedUser.setFailedAttempts(0);
                 authenticatedUser.setLockTime(null);
+                userRepository.save(authenticatedUser);
             }
 
             String accessToken = jwtTokenProvider.generateAccessToken(
-                    authenticatedUser.getId(), authenticatedUser.getUsername(), authenticatedUser.getEmail());
+                    authenticatedUser.getId(),
+                    authenticatedUser.getUsername(),
+                    authenticatedUser.getRole().name(),
+                    authenticatedUser.isEnabled(),
+                    authenticatedUser.isAccountNonLocked());
             String jti = UUID.randomUUID().toString();
             String refreshToken = jwtTokenProvider.generateRefreshToken(authenticatedUser.getId(), jti);
             refreshTokenService.create(
@@ -175,12 +184,14 @@ public class AuthService {
                             newAttempts,
                             PiiSanitizer.sanitizeUsername(user.getUsername()));
                 }
+                userRepository.save(user);
             }
             AuditLogger.log(Event.LOGIN_FAILURE, user != null ? user.getId() : null, Outcome.FAILURE, "badCredentials");
             throw e;
         }
     }
 
+    @Transactional
     public AuthResponse refreshAccessToken(RefreshTokenRequest request) {
         var claims = jwtTokenProvider
                 .validateRefreshToken(request.refreshToken())
@@ -198,7 +209,8 @@ public class AuthService {
             return new UnauthorizedException("Invalid or expired refresh token");
         });
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getUsername(), user.getEmail());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(
+                user.getId(), user.getUsername(), user.getRole().name(), user.isEnabled(), user.isAccountNonLocked());
         String newJti = UUID.randomUUID().toString();
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId(), newJti);
         refreshTokenService.create(user.getId(), newJti, Instant.now().plusMillis(jwtProperties.refreshExpirationMs()));

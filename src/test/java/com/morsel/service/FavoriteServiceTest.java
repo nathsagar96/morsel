@@ -18,6 +18,7 @@ import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -41,9 +42,6 @@ class FavoriteServiceTest {
     @Mock
     private RecipeMapper recipeMapper;
 
-    @Mock
-    private RecipeService recipeService;
-
     @InjectMocks
     private FavoriteService favoriteService;
 
@@ -61,7 +59,7 @@ class FavoriteServiceTest {
     @Test
     @DisplayName("adds recipe to favorites")
     void favorite_withValidIds_addsToFavorites() {
-        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
+        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
         when(userRepository.addFavorite(1L, 100L)).thenReturn(1);
 
         favoriteService.favorite(100L, user);
@@ -72,7 +70,7 @@ class FavoriteServiceTest {
     @Test
     @DisplayName("throws DuplicateResourceException when already favorited")
     void favorite_withAlreadyFavorited_throwsException() {
-        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
+        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
         when(userRepository.addFavorite(1L, 100L)).thenReturn(0);
 
         assertThatThrownBy(() -> favoriteService.favorite(100L, user))
@@ -83,8 +81,7 @@ class FavoriteServiceTest {
     @Test
     @DisplayName("throws ResourceNotFoundException when recipe not found")
     void favorite_withNonExistentRecipe_throwsException() {
-        when(recipeService.findRecipeOrThrow(999L))
-                .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
+        when(recipeRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> favoriteService.favorite(999L, user))
                 .isInstanceOf(ResourceNotFoundException.class)

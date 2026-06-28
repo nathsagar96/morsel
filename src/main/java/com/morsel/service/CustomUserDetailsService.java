@@ -3,6 +3,7 @@ package com.morsel.service;
 import com.morsel.logging.PiiSanitizer;
 import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;

@@ -17,6 +17,7 @@ import com.morsel.repository.CommentRepository;
 import com.morsel.repository.RecipeRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,9 +41,6 @@ class CommentServiceTest {
 
     @Mock
     private CommentMapper commentMapper;
-
-    @Mock
-    private RecipeService recipeService;
 
     @InjectMocks
     private CommentService commentService;
@@ -69,7 +67,7 @@ class CommentServiceTest {
     @Test
     @DisplayName("adds comment and returns response")
     void addComment_withValidRequest_returnsCommentResponse() {
-        when(recipeService.findRecipeOrThrow(100L)).thenReturn(recipe);
+        when(recipeRepository.findById(100L)).thenReturn(Optional.of(recipe));
         when(commentMapper.toEntity(request, recipe, user)).thenReturn(comment);
         when(commentRepository.save(comment)).thenReturn(comment);
         when(commentMapper.toResponse(comment)).thenReturn(CommentResponse.of(comment));
@@ -84,8 +82,7 @@ class CommentServiceTest {
     @Test
     @DisplayName("throws ResourceNotFoundException when recipe does not exist")
     void addComment_withNonExistentRecipe_throwsException() {
-        when(recipeService.findRecipeOrThrow(999L))
-                .thenThrow(new ResourceNotFoundException("Recipe not found with id: 999"));
+        when(recipeRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> commentService.addComment(999L, request, user))
                 .isInstanceOf(ResourceNotFoundException.class)

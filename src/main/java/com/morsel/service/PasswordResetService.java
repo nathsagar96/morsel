@@ -11,6 +11,7 @@ import com.morsel.model.PasswordResetToken;
 import com.morsel.model.User;
 import com.morsel.repository.PasswordResetTokenRepository;
 import com.morsel.repository.UserRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class PasswordResetService {
 
     private final UserRepository userRepository;

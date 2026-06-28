@@ -3,6 +3,13 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT:300000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME:1200000}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT:20000}
+      leak-detection-threshold: ${DB_POOL_LEAK_THRESHOLD:60000}
   mail:
     host: ${MAIL_HOST}
     port: ${MAIL_PORT}
@@ -53,6 +60,8 @@ logging:
 management:
   endpoint:
     health:
-      show-details: when-authorized
       probes:
         enabled: true
+  tracing:
+    sampling:
+      probability: 0.1

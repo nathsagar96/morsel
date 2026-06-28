@@ -4,6 +4,7 @@ import com.morsel.constants.ApiPaths;
 import com.morsel.filter.CorrelationIdFilter;
 import com.morsel.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,8 +45,8 @@ public class SecurityConfig {
                         headers -> headers.contentTypeOptions(_ -> {})
                                 .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
                                 .xssProtection(_ -> {})
-                                .httpStrictTransportSecurity(
-                                        hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000))
+                                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true)
+                                        .maxAgeInSeconds(Duration.ofDays(365).toSeconds()))
                                 .referrerPolicy(referrer ->
                                         referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                                 .permissionsPolicyHeader(

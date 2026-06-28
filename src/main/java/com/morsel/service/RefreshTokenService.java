@@ -2,6 +2,7 @@ package com.morsel.service;
 
 import com.morsel.exception.UnauthorizedException;
 import com.morsel.repository.RefreshTokenRepository;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Instant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @Slf4j
+@Observed
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;

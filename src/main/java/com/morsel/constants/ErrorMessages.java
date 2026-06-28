@@ -17,9 +17,6 @@ public final class ErrorMessages {
     public static final String INTERNAL_SERVER_ERROR_TITLE = "Internal Server Error";
     public static final String UNEXPECTED_ERROR = "An unexpected error occurred";
 
-    public static final String PAYLOAD_TOO_LARGE_TITLE = "Payload Too Large";
-    public static final String PAYLOAD_TOO_LARGE = "The uploaded file exceeds the maximum allowed size";
-
     public static final String CONSTRAINT_VIOLATION_TITLE = "Validation Failure";
 
     public static final String BINDING_FAILURE_TITLE = "Validation Failure";

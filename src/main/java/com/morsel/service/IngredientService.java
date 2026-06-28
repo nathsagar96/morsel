@@ -12,6 +12,7 @@ import com.morsel.model.Ingredient;
 import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.IngredientRepository;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class IngredientService {
 
     private final IngredientRepository ingredientRepository;

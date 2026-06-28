@@ -18,6 +18,7 @@ import com.morsel.repository.IngredientRepository;
 import com.morsel.repository.RecipeRepository;
 import com.morsel.specification.RecipeSpecification;
 import com.morsel.storage.FileStorageService;
+import io.micrometer.observation.annotation.Observed;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
@@ -59,7 +61,7 @@ public class RecipeService {
             spec = spec.and(RecipeSpecification.withKeyword(keyword));
         }
         if (ingredientIds != null && !ingredientIds.isEmpty()) {
-            spec = spec.and(RecipeSpecification.withIngredients(ingredientIds));
+            spec = spec.and(RecipeSpecification.withAnyIngredient(ingredientIds));
         }
         return recipeRepository.findAll(spec, pageable).map(recipeMapper::toSummaryResponse);
     }

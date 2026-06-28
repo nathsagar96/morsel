@@ -2,9 +2,13 @@ spring:
   application:
     name: morsel
   datasource:
-    url: jdbc:postgresql://localhost:5432/morsel
-    username: morsel
-    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
   jpa:
     open-in-view: false
     hibernate:
@@ -63,13 +67,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,traces
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
   info:
     env:
       enabled: true
   metrics:
     tags:
       application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  observations:
+    annotations:
+      enabled: true

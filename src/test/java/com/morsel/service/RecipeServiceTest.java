@@ -167,8 +167,8 @@ class RecipeServiceTest {
     }
 
     @Test
-    @DisplayName("filters recipes by ingredients")
-    void findAll_withIngredients_returnsFilteredResults() {
+    @DisplayName("filters recipes by any ingredient")
+    void findAll_withAnyIngredient_returnsFilteredResults() {
         PageRequest pageable = PageRequest.of(0, 10);
         Page<Recipe> recipePage = new PageImpl<>(List.of(recipe));
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);

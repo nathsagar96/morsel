@@ -3,6 +3,7 @@ package com.morsel.security;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.morsel.config.JwtProperties;
+import com.morsel.security.JwtTokenProvider.AccessTokenClaims;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +30,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("generates valid access JWT with three parts")
     void generateAccessToken_returnsValidToken() {
-        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "test@example.com");
+        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "USER", true, true);
 
         assertThat(token).isNotNull();
         assertThat(token.split("\\.")).hasSize(3);
@@ -45,13 +46,19 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("returns userId from valid access token via validateAccessToken")
-    void validateAccessToken_withValidAccessToken_returnsUserId() {
-        String token = jwtTokenProvider.generateAccessToken(42L, "user42", "u42@example.com");
+    @DisplayName("returns AccessTokenClaims from valid access token via extractAccessTokenClaims")
+    void extractAccessTokenClaims_withValidAccessToken_returnsClaims() {
+        String token = jwtTokenProvider.generateAccessToken(42L, "user42", "ADMIN", true, false);
 
-        Optional<Long> userId = jwtTokenProvider.validateAccessToken(token);
+        Optional<AccessTokenClaims> result = jwtTokenProvider.extractAccessTokenClaims(token);
 
-        assertThat(userId).hasValue(42L);
+        assertThat(result).isPresent();
+        AccessTokenClaims claims = result.get();
+        assertThat(claims.userId()).isEqualTo(42L);
+        assertThat(claims.username()).isEqualTo("user42");
+        assertThat(claims.role()).isEqualTo("ADMIN");
+        assertThat(claims.enabled()).isTrue();
+        assertThat(claims.accountNonLocked()).isFalse();
     }
 
     @Test
@@ -70,7 +77,7 @@ class JwtTokenProviderTest {
     @Test
     @DisplayName("validateRefreshToken rejects access tokens")
     void validateRefreshToken_withAccessToken_returnsEmpty() {
-        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "test@example.com");
+        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "USER", true, true);
 
         Optional<JwtTokenProvider.RefreshTokenClaims> result = jwtTokenProvider.validateRefreshToken(token);
 
@@ -78,72 +85,87 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("validateAccessToken rejects refresh tokens")
-    void validateAccessToken_withRefreshToken_returnsEmpty() {
+    @DisplayName("extractAccessTokenClaims rejects refresh tokens")
+    void extractAccessTokenClaims_withRefreshToken_returnsEmpty() {
         String token = jwtTokenProvider.generateRefreshToken(1L, "jti-000");
 
-        Optional<Long> userId = jwtTokenProvider.validateAccessToken(token);
+        Optional<AccessTokenClaims> result = jwtTokenProvider.extractAccessTokenClaims(token);
 
-        assertThat(userId).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("returns correct userIds for multiple tokens")
-    void validateAccessToken_withDifferentUserIds_returnsCorrectIds() {
-        String token1 = jwtTokenProvider.generateAccessToken(1L, "user1", "u1@example.com");
-        String token2 = jwtTokenProvider.generateAccessToken(100L, "user100", "u100@example.com");
+    @DisplayName("returns correct claims for multiple tokens")
+    void extractAccessTokenClaims_withDifferentUserIds_returnsCorrectClaims() {
+        String token1 = jwtTokenProvider.generateAccessToken(1L, "user1", "USER", true, true);
+        String token2 = jwtTokenProvider.generateAccessToken(100L, "user100", "ADMIN", false, true);
 
-        assertThat(jwtTokenProvider.validateAccessToken(token1)).hasValue(1L);
-        assertThat(jwtTokenProvider.validateAccessToken(token2)).hasValue(100L);
+        assertThat(jwtTokenProvider.extractAccessTokenClaims(token1))
+                .isPresent()
+                .hasValueSatisfying(claims -> {
+                    assertThat(claims.userId()).isEqualTo(1L);
+                    assertThat(claims.username()).isEqualTo("user1");
+                    assertThat(claims.role()).isEqualTo("USER");
+                    assertThat(claims.enabled()).isTrue();
+                });
+
+        assertThat(jwtTokenProvider.extractAccessTokenClaims(token2))
+                .isPresent()
+                .hasValueSatisfying(claims -> {
+                    assertThat(claims.userId()).isEqualTo(100L);
+                    assertThat(claims.username()).isEqualTo("user100");
+                    assertThat(claims.role()).isEqualTo("ADMIN");
+                    assertThat(claims.enabled()).isFalse();
+                });
     }
 
     @Test
     @DisplayName("returns empty for completely invalid token")
-    void validateAccessToken_withInvalidToken_returnsEmpty() {
-        Optional<Long> userId = jwtTokenProvider.validateAccessToken("invalid-token");
+    void extractAccessTokenClaims_withInvalidToken_returnsEmpty() {
+        Optional<AccessTokenClaims> result = jwtTokenProvider.extractAccessTokenClaims("invalid-token");
 
-        assertThat(userId).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
     @DisplayName("returns empty for tampered token")
-    void validateAccessToken_withTamperedToken_returnsEmpty() {
-        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "test@example.com");
+    void extractAccessTokenClaims_withTamperedToken_returnsEmpty() {
+        String token = jwtTokenProvider.generateAccessToken(1L, "testuser", "USER", true, true);
         String tampered = token.substring(0, token.length() - 4) + "xxxx";
 
-        Optional<Long> userId = jwtTokenProvider.validateAccessToken(tampered);
+        Optional<AccessTokenClaims> result = jwtTokenProvider.extractAccessTokenClaims(tampered);
 
-        assertThat(userId).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
     @DisplayName("returns empty for null token")
-    void validateAccessToken_withNullToken_returnsEmpty() {
-        Optional<Long> userId = jwtTokenProvider.validateAccessToken(null);
+    void extractAccessTokenClaims_withNullToken_returnsEmpty() {
+        Optional<AccessTokenClaims> result = jwtTokenProvider.extractAccessTokenClaims(null);
 
-        assertThat(userId).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
     @DisplayName("returns empty for empty string token")
-    void validateAccessToken_withEmptyString_returnsEmpty() {
-        Optional<Long> userId = jwtTokenProvider.validateAccessToken("");
+    void extractAccessTokenClaims_withEmptyString_returnsEmpty() {
+        Optional<AccessTokenClaims> result = jwtTokenProvider.extractAccessTokenClaims("");
 
-        assertThat(userId).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
     @DisplayName("returns empty for expired access token")
-    void validateAccessToken_withExpiredAccessToken_returnsEmpty() throws InterruptedException {
+    void extractAccessTokenClaims_withExpiredAccessToken_returnsEmpty() throws InterruptedException {
         JwtProperties shortLived = new JwtProperties(TEST_SECRET, 1, REFRESH_EXPIRATION_MS, ISSUER, AUDIENCE);
         JwtTokenProvider shortLivedProvider = new JwtTokenProvider(shortLived);
-        String token = shortLivedProvider.generateAccessToken(1L, "testuser", "test@example.com");
+        String token = shortLivedProvider.generateAccessToken(1L, "testuser", "USER", true, true);
 
         Thread.sleep(5);
 
-        Optional<Long> userId = shortLivedProvider.validateAccessToken(token);
+        Optional<AccessTokenClaims> result = shortLivedProvider.extractAccessTokenClaims(token);
 
-        assertThat(userId).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test

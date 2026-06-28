@@ -10,6 +10,7 @@ import com.morsel.mapper.UserMapper;
 import com.morsel.model.User;
 import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class UserProfileService {
 
     private final UserRepository userRepository;

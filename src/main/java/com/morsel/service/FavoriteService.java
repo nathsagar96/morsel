@@ -7,6 +7,7 @@ import com.morsel.mapper.RecipeMapper;
 import com.morsel.model.User;
 import com.morsel.repository.RecipeRepository;
 import com.morsel.repository.UserRepository;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,16 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Observed
 public class FavoriteService {
 
     private final UserRepository userRepository;
     private final RecipeRepository recipeRepository;
     private final RecipeMapper recipeMapper;
-    private final RecipeService recipeService;
 
     @Transactional
     public void favorite(Long recipeId, User currentUser) {
-        recipeService.findRecipeOrThrow(recipeId);
+        recipeRepository
+                .findById(recipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
         int inserted = userRepository.addFavorite(currentUser.getId(), recipeId);
         if (inserted == 0) {
             log.warn("Recipe {} already in favorites for user {}", recipeId, currentUser.getId());
