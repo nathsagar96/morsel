@@ -80,16 +80,7 @@ public class LocalFileStorageService implements FileStorageService {
             throw new IllegalStateException("Failed to read uploaded file", e);
         }
         validateMagicBytes(fileBytes, extension);
-        validateImageDimensions(fileBytes, extension);
-        BufferedImage image;
-        try {
-            image = ImageIO.read(new ByteArrayInputStream(fileBytes));
-        } catch (IOException e) {
-            throw new InvalidFileException("Failed to decode image: " + e.getMessage());
-        }
-        if (image == null) {
-            throw new InvalidFileException("File content is not a valid image");
-        }
+        BufferedImage image = validateImageDimensions(fileBytes, extension);
         String storedFilename = UUID.randomUUID() + "." + extension;
         Path targetPath = uploadDir.resolve(storedFilename);
         if ("webp".equals(extension.toLowerCase())) {
@@ -137,7 +128,7 @@ public class LocalFileStorageService implements FileStorageService {
         }
     }
 
-    private void validateImageDimensions(byte[] bytes, String extension) {
+    private BufferedImage validateImageDimensions(byte[] bytes, String extension) {
         try (ImageInputStream iis = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
             if (iis == null) {
                 throw new InvalidFileException("Cannot read image header");
@@ -159,6 +150,11 @@ public class LocalFileStorageService implements FileStorageService {
                     throw new InvalidFileException(
                             "Image pixel count too large: " + ((long) width * height) + ". Max: " + MAX_PIXEL_COUNT);
                 }
+                BufferedImage image = reader.read(0);
+                if (image == null) {
+                    throw new InvalidFileException("File content is not a valid image");
+                }
+                return image;
             } finally {
                 reader.dispose();
             }

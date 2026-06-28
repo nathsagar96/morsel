@@ -146,7 +146,7 @@ class RecipeServiceTest {
         when(recipeRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(recipePage);
         when(recipeMapper.toSummaryResponse(recipe)).thenReturn(recipeSummaryResponse);
 
-        Page<RecipeSummaryResponse> result = recipeService.findAll(pageable);
+        Page<RecipeSummaryResponse> result = recipeService.findAll(null, null, pageable);
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().getFirst().title()).isEqualTo("Original Title");
@@ -273,13 +273,23 @@ class RecipeServiceTest {
     }
 
     @Test
-    @DisplayName("throws ForbiddenException when non-admin tries to delete")
-    void delete_byNonAdmin_throwsForbidden() {
+    @DisplayName("deletes recipe when owner")
+    void delete_byOwner_deletesRecipe() {
         when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
 
-        assertThatThrownBy(() -> recipeService.delete(100L, author))
+        recipeService.delete(100L, author);
+
+        verify(recipeRepository).delete(recipe);
+    }
+
+    @Test
+    @DisplayName("throws ForbiddenException when non-owner non-admin tries to delete")
+    void delete_byNonOwner_throwsForbidden() {
+        when(recipeRepository.findWithDetailsById(100L)).thenReturn(Optional.of(recipe));
+
+        assertThatThrownBy(() -> recipeService.delete(100L, otherUser))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("Only admins");
+                .hasMessageContaining("not allowed to delete");
 
         verify(recipeRepository, never()).delete((Recipe) any());
     }

@@ -9,5 +9,5 @@ public final class AppPropertyKeys {
     public static final String CORS_PREFIX = APP_PREFIX + ".cors";
     public static final String STORAGE_PREFIX = APP_PREFIX + ".storage";
     public static final String LOCKOUT_PREFIX = APP_PREFIX + ".lockout";
-    public static final String BASE_URL = APP_PREFIX + ".base-url";
+    public static final String PASSWORD_RESET_PREFIX = APP_PREFIX + ".password-reset";
 }

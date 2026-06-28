@@ -5,13 +5,7 @@ import com.morsel.constants.ErrorMessages;
 import com.morsel.dto.request.UserStatusRequest;
 import com.morsel.dto.response.RecipeResponse;
 import com.morsel.dto.response.UserProfileResponse;
-import com.morsel.exception.ResourceNotFoundException;
-import com.morsel.logging.AuditLogger;
-import com.morsel.logging.AuditLogger.Event;
-import com.morsel.logging.AuditLogger.Outcome;
 import com.morsel.logging.PiiSanitizer;
-import com.morsel.model.User;
-import com.morsel.repository.UserRepository;
 import com.morsel.security.UserPrincipal;
 import com.morsel.service.FavoriteService;
 import com.morsel.service.UserProfileService;
@@ -44,7 +38,6 @@ public class UserController {
 
     private final UserProfileService userProfileService;
     private final FavoriteService favoriteService;
-    private final UserRepository userRepository;
 
     @GetMapping("/{username}")
     public UserProfileResponse getProfile(@PathVariable String username) {
@@ -65,12 +58,7 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     public Map<String, String> updateUserStatus(@PathVariable Long id, @Valid @RequestBody UserStatusRequest request) {
         log.debug("Admin request to update user {} status, enabled={}", id, request.enabled());
-        User user =
-                userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found: " + id));
-        user.setEnabled(request.enabled());
-        userRepository.save(user);
-        log.info("User {} {} by admin", id, request.enabled() ? "enabled" : "disabled");
-        AuditLogger.log(Event.ADMIN_USER_STATUS_CHANGE, id, Outcome.SUCCESS, "enabled=" + request.enabled());
+        userProfileService.updateUserStatus(id, request.enabled());
         return Map.of(
                 ErrorMessages.MESSAGE_KEY, "User " + (request.enabled() ? "enabled" : "disabled") + " successfully");
     }

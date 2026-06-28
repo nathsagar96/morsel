@@ -1,13 +1,12 @@
 package com.morsel.service;
 
-import com.morsel.constants.AppPropertyKeys;
+import com.morsel.config.AppProperties;
 import com.morsel.event.PasswordResetEvent;
 import com.morsel.logging.PiiSanitizer;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -21,9 +20,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class EmailService {
 
     private final JavaMailSender mailSender;
-
-    @Value("${" + AppPropertyKeys.BASE_URL + ":http://localhost:8080}")
-    private String baseUrl;
+    private final AppProperties appProperties;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -39,7 +36,7 @@ public class EmailService {
             helper.setFrom("noreply@morsel.app");
             helper.setTo(to);
             helper.setSubject("Morsel - Password Reset Request");
-            String resetUrl = baseUrl + "/reset-password?token=" + token;
+            String resetUrl = appProperties.baseUrl() + "/reset-password?token=" + token;
             String htmlContent = """
                     <html>
                     <body>

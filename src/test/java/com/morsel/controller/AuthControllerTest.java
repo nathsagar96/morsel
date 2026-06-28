@@ -61,7 +61,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"testuser","email":"test@example.com","password":"password123"}
+                                {"username":"testuser","email":"test@example.com","password":"Password1!"}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token").value("test-token"))
@@ -77,7 +77,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"username":"testuser","email":"invalid","password":"password123"}
+                                {"username":"testuser","email":"invalid","password":"Password1!"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -88,7 +88,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"email":"test@example.com","password":"password123"}
+                                {"email":"test@example.com","password":"Password1!"}
                                 """))
                 .andExpect(status().isBadRequest());
     }
@@ -236,7 +236,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"token":"valid-token","newPassword":"newPassword123"}
+                                {"token":"valid-token","newPassword":"NewPassword1!"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").exists());
@@ -247,12 +247,12 @@ class AuthControllerTest {
     void resetPassword_withInvalidToken_returns400() throws Exception {
         org.mockito.Mockito.doThrow(new BadRequestException("Invalid or expired reset token"))
                 .when(passwordResetService)
-                .resetPassword("bad-token", "newPassword123");
+                .resetPassword("bad-token", "NewPassword1!");
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"token":"bad-token","newPassword":"newPassword123"}
+                                {"token":"bad-token","newPassword":"NewPassword1!"}
                                 """))
                 .andExpect(status().isBadRequest());
     }

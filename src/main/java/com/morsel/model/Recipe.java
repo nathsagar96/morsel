@@ -17,6 +17,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -92,4 +93,8 @@ public class Recipe {
     @ManyToMany(mappedBy = "favorites")
     @Builder.Default
     private List<User> favoritedBy = new ArrayList<>();
+
+    public boolean isOwnedBy(User user) {
+        return author != null && user != null && Objects.equals(author.getId(), user.getId());
+    }
 }

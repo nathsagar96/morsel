@@ -4,8 +4,6 @@ public final class ErrorMessages {
 
     private ErrorMessages() {}
 
-    public static final String VALIDATION_FAILURE_TITLE = "Validation Failure";
-
     public static final String UNAUTHORIZED_TITLE = "Unauthorized";
     public static final String INVALID_CREDENTIALS = "Invalid username or password";
 
@@ -19,17 +17,15 @@ public final class ErrorMessages {
     public static final String INTERNAL_SERVER_ERROR_TITLE = "Internal Server Error";
     public static final String UNEXPECTED_ERROR = "An unexpected error occurred";
 
-    public static final String MALFORMED_REQUEST_TITLE = "Bad Request";
-    public static final String MALFORMED_REQUEST = "The request body is malformed or missing";
-
     public static final String PAYLOAD_TOO_LARGE_TITLE = "Payload Too Large";
     public static final String PAYLOAD_TOO_LARGE = "The uploaded file exceeds the maximum allowed size";
-
-    public static final String INVALID_PARAMETER_TITLE = "Bad Request";
 
     public static final String CONSTRAINT_VIOLATION_TITLE = "Validation Failure";
 
     public static final String BINDING_FAILURE_TITLE = "Validation Failure";
+
+    public static final String WEAK_PASSWORD =
+            "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character";
 
     public static final String MESSAGE_KEY = "message";
 }

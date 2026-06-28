@@ -80,7 +80,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        signUpRequest = new SignUpRequest("newuser", "new@example.com", "password123");
+        signUpRequest = new SignUpRequest("newuser", "new@example.com", "Password1!");
         loginRequest = new LoginRequest("testuser", "password");
         user = User.builder()
                 .id(1L)
@@ -97,7 +97,7 @@ class AuthServiceTest {
         when(jwtProperties.refreshExpirationMs()).thenReturn(604800000L);
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
-        when(passwordEncoder.encode("password123")).thenReturn("encoded-password");
+        when(passwordEncoder.encode("Password1!")).thenReturn("encoded-password");
         when(userMapper.toEntity(signUpRequest, "encoded-password", Role.USER)).thenReturn(user);
         when(userRepository.save(user)).thenReturn(user);
         when(jwtTokenProvider.generateAccessToken(anyLong(), any(), any())).thenReturn("test-token");
@@ -145,7 +145,7 @@ class AuthServiceTest {
     void register_withConstraintViolation_throwsException() {
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
-        when(passwordEncoder.encode("password123")).thenReturn("encoded-password");
+        when(passwordEncoder.encode("Password1!")).thenReturn("encoded-password");
         when(userMapper.toEntity(signUpRequest, "encoded-password", Role.USER)).thenReturn(user);
         when(userRepository.save(user)).thenThrow(DataIntegrityViolationException.class);
 

@@ -13,6 +13,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +63,9 @@ public class User {
     @Column(name = "lock_time")
     private Instant lockTime;
 
+    @Version
+    private Long version;
+
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Recipe> recipes = new ArrayList<>();
@@ -81,4 +85,8 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "recipe_id"))
     @Builder.Default
     private List<Recipe> favorites = new ArrayList<>();
+
+    public boolean isAdmin() {
+        return role == Role.ADMIN;
+    }
 }

@@ -265,9 +265,19 @@ class RecipeControllerTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/recipes/{id} returns 403 when non-admin deletes")
-    void delete_byNonAdmin_returns403() throws Exception {
-        doThrow(new ForbiddenException("Only admins can delete recipes"))
+    @DisplayName("DELETE /api/v1/recipes/{id} returns 204 when owner deletes")
+    void delete_byOwner_returns204() throws Exception {
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(
+                        authorPrincipal, null, authorPrincipal.getAuthorities()));
+
+        mockMvc.perform(delete("/api/v1/recipes/100")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/recipes/{id} returns 403 when non-owner non-admin deletes")
+    void delete_byNonOwner_returns403() throws Exception {
+        doThrow(new ForbiddenException("You are not allowed to delete this recipe"))
                 .when(recipeService)
                 .delete(eq(100L), any(User.class));
 

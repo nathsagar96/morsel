@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/morsel
     username: morsel
-    password: secret
+    password: ${DB_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -35,7 +35,7 @@ spring:
 
 app:
   jwt:
-    secret: SBaL2tluRm6kW29kzJ+RboD4PFZr9pRWI+tLg1SvqGM=
+    secret: ${JWT_SECRET}
     expiration-ms: 900000
     refresh-expiration-ms: 604800000
     issuer: morsel
@@ -50,6 +50,8 @@ app:
   lockout:
     max-failed-attempts: 5
     lock-duration-minutes: 15
+  password-reset:
+    token-expiry-minutes: 15
 
 logging:
   level:

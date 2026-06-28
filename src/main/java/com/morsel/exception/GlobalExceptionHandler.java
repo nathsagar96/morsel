@@ -4,26 +4,26 @@ import com.morsel.constants.ErrorMessages;
 import jakarta.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.MDC;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
-import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @RestControllerAdvice
 @Slf4j
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final String CORRELATION_ID_KEY = "correlationId";
 
@@ -33,17 +33,8 @@ public class GlobalExceptionHandler {
         return toProblemDetail(ex.getStatus(), ex.getMessage(), ex.getStatus().getReasonPhrase());
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleValidationError(MethodArgumentNotValidException ex) {
-        String errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(f -> f.getField() + ": " + f.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-        log.debug("Validation failure: {}", errors);
-        return toProblemDetail(HttpStatus.BAD_REQUEST, errors, ErrorMessages.VALIDATION_FAILURE_TITLE);
-    }
-
-    @ExceptionHandler(BadCredentialsException.class)
-    public ProblemDetail handleBadCredentials(BadCredentialsException ex) {
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthentication(AuthenticationException ex) {
         log.debug("Authentication failure: {}", ex.getMessage());
         return toProblemDetail(
                 HttpStatus.UNAUTHORIZED, ErrorMessages.INVALID_CREDENTIALS, ErrorMessages.UNAUTHORIZED_TITLE);
@@ -68,27 +59,6 @@ public class GlobalExceptionHandler {
         return toProblemDetail(HttpStatus.FORBIDDEN, ErrorMessages.ACCOUNT_DISABLED, ErrorMessages.FORBIDDEN_TITLE);
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ProblemDetail handleMalformedRequest(HttpMessageNotReadableException ex) {
-        log.debug("Malformed request: {}", ex.getMessage());
-        return toProblemDetail(
-                HttpStatus.BAD_REQUEST, ErrorMessages.MALFORMED_REQUEST, ErrorMessages.MALFORMED_REQUEST_TITLE);
-    }
-
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ProblemDetail handleMissingParameter(MissingServletRequestParameterException ex) {
-        log.debug("Missing parameter: {}", ex.getParameterName());
-        String detail = "Required parameter '%s' is missing".formatted(ex.getParameterName());
-        return toProblemDetail(HttpStatus.BAD_REQUEST, detail, ErrorMessages.INVALID_PARAMETER_TITLE);
-    }
-
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        log.debug("Type mismatch for parameter {}: {}", ex.getName(), ex.getValue());
-        String detail = "Parameter '%s' has invalid type".formatted(ex.getName());
-        return toProblemDetail(HttpStatus.BAD_REQUEST, detail, ErrorMessages.INVALID_PARAMETER_TITLE);
-    }
-
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
         String errors = ex.getConstraintViolations().stream()
@@ -105,13 +75,6 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         log.debug("Binding failure: {}", errors);
         return toProblemDetail(HttpStatus.BAD_REQUEST, errors, ErrorMessages.BINDING_FAILURE_TITLE);
-    }
-
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ProblemDetail handleMaxUploadSize(MaxUploadSizeExceededException ex) {
-        log.debug("Upload size exceeded: {}", ex.getMessage());
-        return toProblemDetail(
-                HttpStatus.CONTENT_TOO_LARGE, ErrorMessages.PAYLOAD_TOO_LARGE, ErrorMessages.PAYLOAD_TOO_LARGE_TITLE);
     }
 
     @ExceptionHandler(Exception.class)
@@ -137,5 +100,19 @@ public class GlobalExceptionHandler {
 
     private ProblemDetail toProblemDetail(String detail, String title) {
         return toProblemDetail(HttpStatus.BAD_REQUEST, detail, title);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(
+            @NonNull Exception ex,
+            Object body,
+            @NonNull HttpHeaders headers,
+            @NonNull HttpStatusCode status,
+            @NonNull WebRequest request) {
+        if (body instanceof ProblemDetail pd) {
+            String cid = MDC.get(CORRELATION_ID_KEY);
+            if (cid != null) pd.setProperty(CORRELATION_ID_KEY, cid);
+        }
+        return super.handleExceptionInternal(ex, body, headers, status, request);
     }
 }

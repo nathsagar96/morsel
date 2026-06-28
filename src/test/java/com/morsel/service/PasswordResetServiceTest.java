@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.morsel.config.PasswordResetProperties;
 import com.morsel.event.PasswordResetEvent;
 import com.morsel.exception.BadRequestException;
 import com.morsel.exception.ResourceNotFoundException;
@@ -47,6 +48,9 @@ class PasswordResetServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private PasswordResetProperties passwordResetProperties;
+
     @InjectMocks
     private PasswordResetService passwordResetService;
 
@@ -65,6 +69,7 @@ class PasswordResetServiceTest {
     @Test
     @DisplayName("generates hashed token and publishes event for existing user")
     void initiatePasswordReset_withExistingUser_sendsEmail() {
+        when(passwordResetProperties.tokenExpiryMinutes()).thenReturn(15);
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
         passwordResetService.initiatePasswordReset("test@example.com");

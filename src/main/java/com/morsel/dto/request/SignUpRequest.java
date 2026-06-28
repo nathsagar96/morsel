@@ -1,5 +1,6 @@
 package com.morsel.dto.request;
 
+import com.morsel.validation.StrongPassword;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -12,5 +13,5 @@ public record SignUpRequest(
         @NotBlank @Email @Size(max = 100) @Schema(example = "jane.doe@example.com")
         String email,
 
-        @NotBlank @Size(min = 6, max = 100) @Schema(example = "secureP@ss1")
+        @NotBlank @StrongPassword @Size(max = 100) @Schema(example = "secureP@ss1")
         String password) {}

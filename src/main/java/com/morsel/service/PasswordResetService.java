@@ -1,5 +1,6 @@
 package com.morsel.service;
 
+import com.morsel.config.PasswordResetProperties;
 import com.morsel.event.PasswordResetEvent;
 import com.morsel.exception.BadRequestException;
 import com.morsel.exception.ResourceNotFoundException;
@@ -35,6 +36,7 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
+    private final PasswordResetProperties passwordResetProperties;
 
     @Transactional
     public void initiatePasswordReset(String email) {
@@ -46,7 +48,7 @@ public class PasswordResetService {
             PasswordResetToken resetToken = PasswordResetToken.builder()
                     .tokenHash(tokenHash)
                     .userId(user.getId())
-                    .expiresAt(Instant.now().plus(15, ChronoUnit.MINUTES))
+                    .expiresAt(Instant.now().plus(passwordResetProperties.tokenExpiryMinutes(), ChronoUnit.MINUTES))
                     .build();
             passwordResetTokenRepository.save(resetToken);
             log.debug("Password reset token generated for user {}", user.getId());

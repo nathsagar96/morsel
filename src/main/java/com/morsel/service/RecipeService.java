@@ -13,7 +13,6 @@ import com.morsel.logging.PiiSanitizer;
 import com.morsel.mapper.RecipeMapper;
 import com.morsel.model.Ingredient;
 import com.morsel.model.Recipe;
-import com.morsel.model.Role;
 import com.morsel.model.User;
 import com.morsel.repository.IngredientRepository;
 import com.morsel.repository.RecipeRepository;
@@ -54,11 +53,6 @@ public class RecipeService {
     }
 
     @Transactional(readOnly = true)
-    public Page<RecipeSummaryResponse> findAll(Pageable pageable) {
-        return findAll(null, null, pageable);
-    }
-
-    @Transactional(readOnly = true)
     public Page<RecipeSummaryResponse> findAll(String keyword, List<Long> ingredientIds, Pageable pageable) {
         Specification<Recipe> spec = (_, _, cb) -> cb.conjunction();
         if (keyword != null && !keyword.isBlank()) {
@@ -89,11 +83,11 @@ public class RecipeService {
     @Transactional
     public void delete(Long id, User currentUser) {
         Recipe recipe = findRecipeOrThrow(id);
-        if (currentUser.getRole() != Role.ADMIN) {
-            throw new ForbiddenException("Only admins can delete recipes");
+        if (!currentUser.isAdmin() && !recipe.isOwnedBy(currentUser)) {
+            throw new ForbiddenException("You are not allowed to delete this recipe");
         }
         recipeRepository.delete(recipe);
-        log.info("Recipe deleted: id={} by admin={}", id, PiiSanitizer.sanitizeUsername(currentUser.getUsername()));
+        log.info("Recipe deleted: id={} by user={}", id, PiiSanitizer.sanitizeUsername(currentUser.getUsername()));
         AuditLogger.log(Event.RECIPE_DELETED, currentUser.getId(), Outcome.SUCCESS, "recipeId=" + id);
     }
 
@@ -115,7 +109,7 @@ public class RecipeService {
     }
 
     private void checkOwnership(Recipe recipe, User currentUser) {
-        if (!recipe.getAuthor().getId().equals(currentUser.getId())) {
+        if (!recipe.isOwnedBy(currentUser)) {
             log.warn(
                     "Forbidden: user={} attempted to modify recipe={} owned by user={}",
                     currentUser.getId(),
